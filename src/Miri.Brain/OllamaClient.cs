@@ -1,4 +1,5 @@
 ﻿using System.Net;
+using System.IO;
 using System.Net.Http;
 using System.Text;
 using System.Text.Json;
@@ -225,6 +226,41 @@ public sealed class OllamaClient : IDisposable
             foreach (var m in models.EnumerateArray())
                 if (m.TryGetProperty("name", out var n) && n.GetString() is { Length: > 0 } name) list.Add(name);
         return list;
+    }
+
+    /// <summary>POST /api/pull (streamed). Reports 0..1 progress; throws OllamaException on failure.</summary>
+    public async Task PullAsync(string model, IProgress<double>? progress, CancellationToken ct)
+    {
+        var payload = new JsonObject { ["model"] = model, ["stream"] = true };
+        using var req = new HttpRequestMessage(HttpMethod.Post, "api/pull")
+        { Content = new StringContent(payload.ToJsonString(), System.Text.Encoding.UTF8, "application/json") };
+        using var resp = await _http.SendAsync(req, HttpCompletionOption.ResponseHeadersRead, ct).ConfigureAwait(false);
+        if (!resp.IsSuccessStatusCode)
+            throw new OllamaException(ExtractError(await resp.Content.ReadAsStringAsync(ct).ConfigureAwait(false)) ?? $"Pull of {model} failed ({(int)resp.StatusCode})", resp.StatusCode);
+        using var reader = new StreamReader(await resp.Content.ReadAsStreamAsync(ct).ConfigureAwait(false));
+        string? line;
+        while ((line = await reader.ReadLineAsync(ct).ConfigureAwait(false)) != null)
+        {
+            if (line.Length == 0) continue;
+            using var doc = JsonDocument.Parse(line);
+            var r = doc.RootElement;
+            if (r.TryGetProperty("error", out var e)) throw new OllamaException(e.GetString() ?? $"Pull of {model} failed");
+            if (r.TryGetProperty("total", out var t) && r.TryGetProperty("completed", out var c) && t.GetInt64() > 0)
+                progress?.Report((double)c.GetInt64() / t.GetInt64());
+            if (r.TryGetProperty("status", out var s) && s.GetString() == "success") { progress?.Report(1); return; }
+        }
+        throw new OllamaException($"Pull of {model} ended early");
+    }
+
+    /// <summary>DELETE /api/delete. Missing model is fine.</summary>
+    public async Task DeleteAsync(string model, CancellationToken ct = default)
+    {
+        var payload = new JsonObject { ["model"] = model };
+        using var req = new HttpRequestMessage(HttpMethod.Delete, "api/delete")
+        { Content = new StringContent(payload.ToJsonString(), System.Text.Encoding.UTF8, "application/json") };
+        using var resp = await _http.SendAsync(req, ct).ConfigureAwait(false);
+        if (!resp.IsSuccessStatusCode && resp.StatusCode != HttpStatusCode.NotFound)
+            throw new OllamaException($"Couldn't delete {model} ({(int)resp.StatusCode})", resp.StatusCode);
     }
 
     /// <summary>Frees a model's RAM now (POST /api/generate with keep_alive 0). Best effort.</summary>

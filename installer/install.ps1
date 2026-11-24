@@ -60,6 +60,7 @@ if (-not $ollama) {
 if ($ollama) {
     $models = 'qwen3.5:4b', 'gemma4:e4b'   # chat, vision (must match settings.json)
     Write-Host "`nMiri uses these models: $($models -join ', ') (several GB to download)."
+    Write-Host "Or answer n: on first start Miri suggests a chat + vision model pair that fits this PC."
     Write-Host "By downloading them you agree to their licenses (Qwen license, Gemma Terms of Use): https://ollama.com/library"
     if ((Read-Host "Download them now? (y/n)") -eq 'y') {
         if (-not (Get-Process ollama -ErrorAction SilentlyContinue)) {

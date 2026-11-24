@@ -49,12 +49,13 @@ internal sealed class TrayIcon : IDisposable
             _settings.WeatherUseLocation = loc.Checked;
             try { _settings.Save(); } catch { }
         };
+        var pick = new Forms.ToolStripMenuItem("Choose models…", null, (_, _) => new ModelSetupWindow(_settings, brain).Show());
         var data = new Forms.ToolStripMenuItem("Open data folder", null, (_, _) => OpenDataFolder());
         var exit = new Forms.ToolStripMenuItem("Quit", null, (_, _) => quit());
 
         menu.Items.AddRange(new Forms.ToolStripItem[]
         {
-            talk, feed, new Forms.ToolStripSeparator(), _modelMenu, _pauseItem, tease, loc, data, new Forms.ToolStripSeparator(), exit,
+            talk, feed, new Forms.ToolStripSeparator(), _modelMenu, _pauseItem, tease, loc, pick, data, new Forms.ToolStripSeparator(), exit,
         });
 
         _icon = new Forms.NotifyIcon

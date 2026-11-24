@@ -32,6 +32,8 @@ public sealed class MiriSettings
     public bool Mischief { get; set; } = true;
     /// <summary>"What's the weather?" uses Windows location (rounded to ~10 km, sent to Open-Meteo). Off = only cities you name or WeatherCity.</summary>
     public bool WeatherUseLocation { get; set; } = true;
+    /// <summary>False until the first-start model picker was answered.</summary>
+    public bool ModelSetupDone { get; set; }
     /// <summary>City used for weather when location is off or unavailable (e.g. "Hanoi").</summary>
     public string WeatherCity { get; set; } = "";
 

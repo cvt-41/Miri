@@ -1,4 +1,4 @@
-using System.IO;
+﻿using System.IO;
 using System.Windows;
 using System.Windows.Threading;
 using Miri.Core;
@@ -99,6 +99,7 @@ public partial class App : System.Windows.Application
         var shell = _shell;
         _mischief = new Mischief(settings, pet, () => shell.IsBusy || shell.BubbleOpen);
         _mischief.Start();
+        if (!settings.ModelSetupDone) new ModelSetupWindow(settings, () => shell.Brain).Show();   // first start: pick models for this PC
     }
 
     private void DisposeTray()

@@ -27,6 +27,7 @@ A pixel-art white kitten desktop assistant for Windows. It answers questions usi
 - **Kitten things:** stroke the mouse back and forth over her to pet her (she purrs with hearts, even wakes up purring); tray "Feed Miri" (she eats from a bowl, then is full for 2 minutes). **Teasing** (tray "Let Miri tease me", on by default): every 15–40 min, only after you paused input 4 s–10 min, never fullscreen/elevated/while chatting, she paws your Chromium tab strip and presses Ctrl+Tab, or switches you to another app, then looks smug. Never types, clicks content or closes anything.
 - **Weather:** "what's the weather (in Hanoi)?" / "thời tiết ở Đà Nẵng?" answers from Open-Meteo (free, no key): the named city, else Windows location rounded to ~10 km (tray "Use my location for weather"), else settings `WeatherCity`. Answered without the LLM, so it is instant.
 - **Perches on more edges:** dropped on or just above a visible top edge (toolbar, card, text box, image) she stands on top of it; otherwise on the bottom edge of the panel she is inside (now down to 60 px tall, 1.3× her width).
+- **Model picker:** on first start (and tray "Choose models…") Miri reads RAM and GPU memory and suggests a chat + vision model pair (Light / Balanced / Strong / Power; CPU-only PCs are capped at Balanced for speed). Choosing downloads the new pair, switches settings to it, then deletes the models it replaced; if a download fails the old ones stay.
 
 ## 2. Tech stack
 | Part | Choice | Why |
