@@ -1,0 +1,56 @@
+﻿<Window x:Class="Miri.App.BubbleWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:local="clr-namespace:Miri.App"
+        Title="Miri" Width="340" SizeToContent="Height"
+        WindowStyle="None" AllowsTransparency="True" Background="Transparent"
+        Topmost="True" ShowInTaskbar="False" ResizeMode="NoResize" ShowActivated="True"
+        UseLayoutRounding="True" SnapsToDevicePixels="True"
+        TextOptions.TextFormattingMode="Display"
+        FontFamily="Cascadia Mono, Consolas, Segoe UI" FontSize="13"
+        Foreground="{StaticResource TextBrush}">
+    <Window.Resources>
+        <Style TargetType="ScrollBar" BasedOn="{StaticResource ThinScrollBar}"/>
+    </Window.Resources>
+    <local:PixelPanel x:Name="Frame" Pixel="3" Padding="10,8,8,8" TailX="60">
+        <StackPanel>
+            <DockPanel Margin="0,0,0,6" LastChildFill="True">
+                <Button x:Name="CloseButton" DockPanel.Dock="Right" ToolTip="Close (Esc)"
+                        AutomationProperties.Name="Close" Style="{StaticResource PixelCloseButton}" IsTabStop="False"/>
+                <TextBlock Text="Miri" FontWeight="Bold" VerticalAlignment="Center"/>
+                <TextBlock x:Name="StatusText" Margin="8,0,6,0" FontSize="11" VerticalAlignment="Center"
+                           Foreground="{StaticResource MutedBrush}" TextTrimming="CharacterEllipsis"/>
+            </DockPanel>
+
+            <ScrollViewer x:Name="ReplyScroll" MaxHeight="240" VerticalScrollBarVisibility="Auto"
+                          Visibility="Collapsed" Margin="0,0,0,8" Focusable="False">
+                <TextBlock x:Name="ReplyText" TextWrapping="Wrap" LineHeight="18"
+                           AutomationProperties.LiveSetting="Polite"/>
+            </ScrollViewer>
+
+            <local:PixelPanel x:Name="ApprovalCard" Visibility="Collapsed" Pixel="3" Padding="8,6,6,4"
+                              Margin="0,0,0,8" Fill="White">
+                <StackPanel>
+                    <TextBlock x:Name="ApprovalTitle" TextWrapping="Wrap" FontWeight="Bold"/>
+                    <TextBlock x:Name="ApprovalReason" TextWrapping="Wrap" FontSize="11" Margin="0,2,0,6"
+                               Foreground="{StaticResource MutedBrush}"/>
+                    <WrapPanel>
+                        <Button x:Name="YesButton" Content="Yes" Background="#E3E6B8" Style="{StaticResource PixelButton}"/>
+                        <Button x:Name="NoButton" Content="No" Style="{StaticResource PixelButton}"/>
+                        <Button x:Name="YesAllButton" Content="Yes to all for this task" Style="{StaticResource PixelButton}"/>
+                    </WrapPanel>
+                </StackPanel>
+            </local:PixelPanel>
+
+            <Border BorderBrush="{StaticResource OutlineBrush}" BorderThickness="2" Background="White" Padding="5,4">
+                <Grid>
+                    <TextBox x:Name="Input" BorderThickness="0" Background="Transparent" Padding="0"
+                             TextWrapping="Wrap" AcceptsReturn="False" MaxHeight="90"
+                             VerticalScrollBarVisibility="Auto" Foreground="{StaticResource TextBrush}"/>
+                    <TextBlock x:Name="Placeholder" IsHitTestVisible="False" Margin="2,0,0,0"
+                               Foreground="#A3A7B1" Text="Ask Miri... (Enter sends, Esc closes)"/>
+                </Grid>
+            </Border>
+        </StackPanel>
+    </local:PixelPanel>
+</Window>

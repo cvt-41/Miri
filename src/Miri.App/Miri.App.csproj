@@ -1,0 +1,35 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <UseWPF>true</UseWPF>
+    <UseWindowsForms>true</UseWindowsForms>
+    <TargetFramework>net9.0-windows10.0.19041.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <ApplicationManifest>app.manifest</ApplicationManifest>
+    <!-- WFO0003 is a WinForms-only hint; this is a WPF app and PerMonitorV2 must come from the manifest. -->
+    <NoWarn>$(NoWarn);WFO0003</NoWarn>
+  </PropertyGroup>
+
+  <!-- WPF and WinForms share many type names (Application, MessageBox, Point...). Keep WinForms /
+       System.Drawing out of the global usings and alias them explicitly where needed. -->
+  <ItemGroup>
+    <Using Remove="System.Windows.Forms" />
+    <Using Remove="System.Drawing" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Miri.Core\Miri.Core.csproj" />
+    <ProjectReference Include="..\Miri.Brain\Miri.Brain.csproj" />
+    <ProjectReference Include="..\Miri.Hands\Miri.Hands.csproj" />
+    <ProjectReference Include="..\Miri.Pet\Miri.Pet.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Content Include="..\..\knowledge\**\*.md" LinkBase="knowledge" CopyToOutputDirectory="PreserveNewest" />
+    <!-- user-editable sprite sheet (loaded instead of the procedural one when present) -->
+    <Content Include="..\..\assets\sprites\miri.png;..\..\assets\sprites\miri.json" LinkBase="assets\sprites" CopyToOutputDirectory="PreserveNewest" Condition="Exists('..\..\assets\sprites\miri.png')" />
+  </ItemGroup>
+
+</Project>

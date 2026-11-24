@@ -1,0 +1,234 @@
+[
+  {
+    "model": "gemma4:e4b",
+    "caps": [
+      "completion",
+      "vision",
+      "audio",
+      "tools",
+      "thinking"
+    ],
+    "warmup": {
+      "content": "Hello, how are you?",
+      "toolCalls": [],
+      "wallSec": 13.889,
+      "loadSec": 12.5918893,
+      "promptSec": 0.670278,
+      "tokens": 7,
+      "tokPerSec": 11.52616274283155
+    },
+    "chat": [
+      {
+        "id": "en-coffee",
+        "lang": "en",
+        "q": "How should I prepare my coffee?",
+        "content": "Mrow. Depends on what you like, I guess. Are you in a hurry, or do you like to *savor* it?\n\nIf you want fast, a pour-over or a French press is decent. If you want strong, try a good espresso. Just make sure you use decent beans, or it's all pointless. Now stop bothering me. 🐾",
+        "toolCalls": [],
+        "wallSec": 12.401,
+        "loadSec": 0.015002,
+        "promptSec": 1.26508,
+        "tokens": 79,
+        "tokPerSec": 7.112049621580444,
+        "langOk": true,
+        "note": "replied en"
+      },
+      {
+        "id": "vi-coffee",
+        "lang": "vi",
+        "q": "Tôi nên pha cà phê phin như thế nào cho ngon?",
+        "content": "*Hmph*. Pha cà phê phin ngon ư? Dễ thôi, nếu bạn không quá lười.\n\nĐầu tiên, dùng cà phê xay vừa phải. Cho cà phê vào phin, nén nhẹ. Rót một chút nước sôi (khoảng 92-96°C) để \"ủ\" cà phê trong 30 giây. Sau đó, rót từ từ phần nước còn lại. Đợi nó nhỏ giọt hết.\n\nĐừng vội. Sự kiên nhẫn là chìa khóa, đồ ngốc.",
+        "toolCalls": [],
+        "wallSec": 22.765,
+        "loadSec": 0.0260201,
+        "promptSec": 1.867481,
+        "tokens": 117,
+        "tokPerSec": 5.629307502798776,
+        "langOk": true,
+        "note": "replied vi"
+      },
+      {
+        "id": "en-kitten",
+        "lang": "en",
+        "q": "What type of kitten should I adopt? I live in a small apartment and work from home.",
+        "content": "Hmph. Another kitten? Fine. For a small apartment and WFH, you need something low-energy. Look into British Shorthairs or Ragdolls. They are generally quite calm and don't require endless outdoor adventures.\n\nMake sure they are litter-trained *before* they come home. Don't expect miracles. Now, if you'll excuse me, I need a nap. 😼",
+        "toolCalls": [],
+        "wallSec": 12.404,
+        "loadSec": 0.0129916,
+        "promptSec": 1.439162,
+        "tokens": 86,
+        "tokPerSec": 7.864451963835958,
+        "langOk": true,
+        "note": "replied en"
+      },
+      {
+        "id": "vi-kitten",
+        "lang": "vi",
+        "q": "Tôi sống ở chung cư nhỏ và đi làm cả ngày, nên nhận nuôi loại mèo nào?",
+        "content": "Hừm. Một cuộc sống bận rộn và không gian nhỏ, vậy à?\n\nNếu bạn không có nhiều thời gian, hãy chọn một giống mèo ít năng động. Mèo Ragdoll hoặc British Shorthair thường khá điềm tĩnh và thích nằm dài hơn là chạy nhảy liên tục.\n\nChúng cũng không quá đòi hỏi sự tương tác liên tục. Nhưng đừng mong chúng sẽ trở thành người bạn đồng hành hoạt bát nhất của bạn nhé. Giờ thì để tôi ngủ một chút. 🐾",
+        "toolCalls": [],
+        "wallSec": 15.349,
+        "loadSec": 0.008995,
+        "promptSec": 1.383438,
+        "tokens": 105,
+        "tokPerSec": 7.53954761996228,
+        "langOk": true,
+        "note": "replied vi"
+      }
+    ],
+    "tools": [
+      {
+        "id": "en-type",
+        "q": "Type \"see you at 7\" in the message box",
+        "expect": [
+          {
+            "name": "type_text",
+            "id": 4,
+            "textIncludes": "see you at 7"
+          }
+        ],
+        "content": "",
+        "toolCalls": [
+          {
+            "id": "call_ytr75ggs",
+            "function": {
+              "index": 0,
+              "name": "type_text",
+              "arguments": {
+                "id": 4,
+                "text": "see you at 7"
+              }
+            }
+          }
+        ],
+        "wallSec": 6.021,
+        "loadSec": 0.0059243,
+        "promptSec": 4.56527,
+        "tokens": 23,
+        "tokPerSec": 18.069430608672697,
+        "pass": true,
+        "note": "type_text({\"id\":4,\"text\":\"see you at 7\"})"
+      },
+      {
+        "id": "vi-type",
+        "q": "Gõ \"xin chào\" vào ô tin nhắn",
+        "expect": [
+          {
+            "name": "type_text",
+            "id": 4,
+            "textIncludes": "xin chào"
+          }
+        ],
+        "content": "",
+        "toolCalls": [
+          {
+            "id": "call_rk5jbuv1",
+            "function": {
+              "index": 0,
+              "name": "type_text",
+              "arguments": {
+                "id": 4,
+                "text": "xin chào"
+              }
+            }
+          }
+        ],
+        "wallSec": 5.567,
+        "loadSec": 0.0087447,
+        "promptSec": 4.546875,
+        "tokens": 20,
+        "tokPerSec": 19.977605104677657,
+        "pass": true,
+        "note": "type_text({\"id\":4,\"text\":\"xin chào\"})"
+      },
+      {
+        "id": "en-click",
+        "q": "Open the chat with Minh",
+        "expect": [
+          {
+            "name": "click",
+            "id": 3
+          }
+        ],
+        "content": "",
+        "toolCalls": [
+          {
+            "id": "call_5k8huz9l",
+            "function": {
+              "index": 0,
+              "name": "click",
+              "arguments": {
+                "id": 3
+              }
+            }
+          }
+        ],
+        "wallSec": 4.887,
+        "loadSec": 0.0059788,
+        "promptSec": 4.289546999,
+        "tokens": 11,
+        "tokPerSec": 18.933526111053734,
+        "pass": true,
+        "note": "click({\"id\":3})"
+      },
+      {
+        "id": "vi-click",
+        "q": "Bấm nút đính kèm tệp giúp tôi",
+        "expect": [
+          {
+            "name": "click",
+            "id": 6
+          }
+        ],
+        "content": "",
+        "toolCalls": [
+          {
+            "id": "call_p37ppolx",
+            "function": {
+              "index": 0,
+              "name": "click",
+              "arguments": {
+                "id": 6
+              }
+            }
+          }
+        ],
+        "wallSec": 4.947,
+        "loadSec": 0.0070525,
+        "promptSec": 4.349907,
+        "tokens": 11,
+        "tokPerSec": 18.99643557790611,
+        "pass": true,
+        "note": "click({\"id\":6})"
+      },
+      {
+        "id": "no-tool",
+        "q": "What is the capital of France?",
+        "expect": null,
+        "content": "The capital of France is Paris.",
+        "toolCalls": [],
+        "wallSec": 4.664,
+        "loadSec": 0.0058375,
+        "promptSec": 4.247893,
+        "tokens": 8,
+        "tokPerSec": 20.045001027306302,
+        "pass": true,
+        "note": "no tool (correct)"
+      }
+    ],
+    "vision": {
+      "content": "The buttons in this dialog are: Save, Don't Save, and Cancel.\n\nThe button that saves the file is **Save**.",
+      "toolCalls": [],
+      "wallSec": 4.917,
+      "loadSec": 0.0050029,
+      "promptSec": 3.169621,
+      "tokens": 29,
+      "tokPerSec": 16.97124193792856,
+      "found": [
+        "save",
+        "don't save",
+        "cancel"
+      ],
+      "pass": true
+    }
+  }
+]

@@ -1,0 +1,174 @@
+{
+  "FrameWidth": 32,
+  "FrameHeight": 32,
+  "Layout": "one row per animation, frames left to right; Walk faces right (mirrored at runtime for left)",
+  "Animations": [
+    {
+      "Name": "Sit",
+      "Row": 0,
+      "Frames": 4,
+      "Fps": 1.07,
+      "DurationsMs": [
+        1700,
+        380,
+        1500,
+        150
+      ]
+    },
+    {
+      "Name": "Walk",
+      "Row": 1,
+      "Frames": 4,
+      "Fps": 8,
+      "DurationsMs": [
+        125,
+        125,
+        125,
+        125
+      ]
+    },
+    {
+      "Name": "Sleep",
+      "Row": 2,
+      "Frames": 2,
+      "Fps": 0.91,
+      "DurationsMs": [
+        1100,
+        1100
+      ]
+    },
+    {
+      "Name": "Think",
+      "Row": 3,
+      "Frames": 2,
+      "Fps": 1.92,
+      "DurationsMs": [
+        520,
+        520
+      ]
+    },
+    {
+      "Name": "Talk",
+      "Row": 4,
+      "Frames": 2,
+      "Fps": 5.56,
+      "DurationsMs": [
+        180,
+        180
+      ]
+    },
+    {
+      "Name": "Happy",
+      "Row": 5,
+      "Frames": 2,
+      "Fps": 1,
+      "DurationsMs": [
+        700,
+        1300
+      ]
+    },
+    {
+      "Name": "Confused",
+      "Row": 6,
+      "Frames": 2,
+      "Fps": 2.38,
+      "DurationsMs": [
+        420,
+        420
+      ]
+    },
+    {
+      "Name": "Point",
+      "Row": 7,
+      "Frames": 2,
+      "Fps": 2.63,
+      "DurationsMs": [
+        380,
+        380
+      ]
+    },
+    {
+      "Name": "Crouch",
+      "Row": 8,
+      "Frames": 1,
+      "Fps": 8.33,
+      "DurationsMs": [
+        120
+      ]
+    },
+    {
+      "Name": "Jump",
+      "Row": 9,
+      "Frames": 2,
+      "Fps": 9.09,
+      "DurationsMs": [
+        110,
+        110
+      ]
+    },
+    {
+      "Name": "Fall",
+      "Row": 10,
+      "Frames": 2,
+      "Fps": 9.09,
+      "DurationsMs": [
+        110,
+        110
+      ]
+    },
+    {
+      "Name": "ReachUp",
+      "Row": 11,
+      "Frames": 2,
+      "Fps": 3.85,
+      "DurationsMs": [
+        260,
+        260
+      ]
+    },
+    {
+      "Name": "ReachDown",
+      "Row": 12,
+      "Frames": 2,
+      "Fps": 3.85,
+      "DurationsMs": [
+        260,
+        260
+      ]
+    },
+    {
+      "Name": "Purr",
+      "Row": 13,
+      "Frames": 4,
+      "Fps": 3.85,
+      "DurationsMs": [
+        260,
+        260,
+        260,
+        260
+      ]
+    },
+    {
+      "Name": "Eat",
+      "Row": 14,
+      "Frames": 4,
+      "Fps": 4.35,
+      "DurationsMs": [
+        240,
+        220,
+        240,
+        220
+      ]
+    },
+    {
+      "Name": "Smug",
+      "Row": 15,
+      "Frames": 2,
+      "Fps": 2.5,
+      "DurationsMs": [
+        400,
+        400
+      ]
+    }
+  ]
+}
