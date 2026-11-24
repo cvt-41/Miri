@@ -1,4 +1,12 @@
-# Miri 🐾
+<p align="center">
+  <img src="docs/miri-purr.png" width="200" alt="Miri, a white pixel kitten, purring with her eyes closed while pink hearts float up">
+</p>
+
+<h1 align="center">Miri</h1>
+
+<p align="center"><i>Pet her. She purrs. She clicks things for you.</i></p>
+
+---
 
 A tiny pixel kitten who lives on your Windows desktop. She walks along your taskbar and window title bars, naps, gets petted, eats, teases you now and then, and when you ask, she chats and works your apps for you. Her brain runs **entirely on your PC** through [Ollama](https://ollama.com), so no account and no cloud AI.
 
