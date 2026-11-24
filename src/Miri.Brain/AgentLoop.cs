@@ -333,7 +333,10 @@ internal sealed class AgentLoop
 
     private async Task<string> RunMediaAsync(MediaCommand cmd, Lang lang, IntPtr ownWindow, ReplyWriter reply, CancellationToken ct)
     {
+        // default music app (named or not): fall back to Spotify, then YouTube in a browser, on PCs without it
+        bool auto = cmd.App == null || cmd.App.Equals(_settings.MusicApp, StringComparison.OrdinalIgnoreCase);
         var app = cmd.App ?? _settings.MusicApp;
+        bool youtube = Fold(app) == "youtube";
         var appTitle = app.Length > 0 ? char.ToUpperInvariant(app[0]) + app[1..] : app;
         string descEn, descVi;
         switch (cmd.Kind)
@@ -349,6 +352,14 @@ internal sealed class AgentLoop
                 descEn = $"Play \"{cmd.Query}\" in {appTitle} (open it, search, start the best match)";
                 descVi = $"Phát \"{cmd.Query}\" trong {appTitle} (mở app, tìm kiếm, bật kết quả phù hợp nhất)";
                 break;
+        }
+        if (youtube || (auto && cmd.Kind != MediaCommandKind.Control))
+        {
+            var where = youtube ? "YouTube in your browser" : $"{appTitle}, Spotify, or YouTube in your browser";
+            var whereVi = youtube ? "YouTube trên trình duyệt" : $"{appTitle}, Spotify, hoặc YouTube trên trình duyệt";
+            (descEn, descVi) = cmd.Kind == MediaCommandKind.PlayAnything
+                ? ($"Open {where} and press play", $"Mở {whereVi} và bấm phát")
+                : ($"Play \"{cmd.Query}\" ({where}: search and start the best match)", $"Phát \"{cmd.Query}\" ({whereVi}: tìm và bật kết quả phù hợp nhất)");
         }
         var description = L(lang, descEn, descVi);
 
@@ -384,7 +395,21 @@ internal sealed class AgentLoop
         }
 
         // 1) bring the music app to the front (open it when it is not running)
-        var (snap, wasRunning, err) = await BringAppForwardAsync(app, ownWindow, ct).ConfigureAwait(false);
+        UiSnapshot? snap = null; bool wasRunning = false; string? err = null;
+        if (!youtube)
+            foreach (var candidate in auto ? new[] { app, "Spotify" }.Distinct(StringComparer.OrdinalIgnoreCase) : new[] { app })
+            {
+                (snap, wasRunning, err) = await BringAppForwardAsync(candidate, ownWindow, ct).ConfigureAwait(false);
+                if (snap != null) { app = candidate; appTitle = char.ToUpperInvariant(app[0]) + app[1..]; break; }
+            }
+        if (snap == null && (youtube || auto))
+        {
+            if (cmd.Kind == MediaCommandKind.PlaySong) return await PlayOnYouTubeAsync(cmd.Query!, lang, ownWindow, reply, ct).ConfigureAwait(false);
+            _events.OnMood(PetMood.Confused);
+            reply.Say(L(lang, "I couldn't find a music app on this PC. Tell me a song name and I'll play it on YouTube, meow.",
+                              "Miri không thấy ứng dụng nghe nhạc nào. Bạn nói tên bài, Miri sẽ mở trên YouTube nhé, meo."));
+            return reply.Text;
+        }
         if (snap == null)
         {
             _events.OnMood(PetMood.Confused);
@@ -416,7 +441,7 @@ internal sealed class AgentLoop
             .OrderBy(e => e.Bounds.Left).FirstOrDefault();
         var open = nav != null
             ? await Exec(new UiAction(ActionKind.Click, ElementId: nav.Id), page, ct).ConfigureAwait(false)
-            : await Exec(new UiAction(ActionKind.PressKeys, Keys: "ctrl+f"), page, ct).ConfigureAwait(false);
+            : await Exec(new UiAction(ActionKind.PressKeys, Keys: appKey == "spotify" ? "ctrl+k" : "ctrl+f"), page, ct).ConfigureAwait(false);   // Ctrl+K is Spotify's search
         if (!open.Success)
             return Stuck(open.Message);
 
@@ -493,6 +518,88 @@ internal sealed class AgentLoop
                               $"{appTitle} bị mất tiêu điểm khi Miri đang tìm nên Miri dừng lại. Không đụng gì khác."));
             return reply.Text;
         }
+    }
+
+    private static readonly System.Text.RegularExpressions.Regex YouTubeDuration =
+        new(@"\d+ (minutes?|seconds?|hours?|phút|giây|giờ)", System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+
+    private static readonly (string Process, string App)[] Browsers =
+        { ("chrome", "Google Chrome"), ("msedge", "Microsoft Edge"), ("brave", "Brave"), ("vivaldi", "Vivaldi"), ("opera", "Opera") };
+
+    /// <summary>No music app: a Chromium browser (one already open, else Chrome, else Edge…), new tab, youtube.com, search, first matching video.</summary>
+    private async Task<string> PlayOnYouTubeAsync(string query, Lang lang, IntPtr ownWindow, ReplyWriter reply, CancellationToken ct)
+    {
+        // an open browser is focused by its process name (Chromium forks like Helium also run as chrome.exe)
+        var running = _reader.ListWindows().Select(w => w.Process).FirstOrDefault(pr => Browsers.Any(b => Fold(pr) == b.Process));
+        UiSnapshot? snap = null; string browser = "";
+        foreach (var b in running != null ? new[] { running } : Browsers.Select(x => x.App))
+        {
+            (snap, _, _) = await BringAppForwardAsync(b, ownWindow, ct).ConfigureAwait(false);
+            if (snap != null) { browser = snap.WindowTitle.Split(" - ").Last().Trim(); break; }   // "… - Helium": its real name, not the exe's
+        }
+        if (snap == null)
+            return Fail(L(lang, "I couldn't find Chrome, Edge or another Chromium browser to open YouTube in.", "Miri không thấy Chrome, Edge hay trình duyệt Chromium nào để mở YouTube."));
+        string proc = snap.ProcessName;
+        bool InBrowser(UiSnapshot s) => s.ProcessName.Equals(proc, StringComparison.OrdinalIgnoreCase);
+
+        // new tab (never take over the user's page), then type the address like a person
+        foreach (var step in new[] { new UiAction(ActionKind.PressKeys, Keys: "ctrl+t"), new UiAction(ActionKind.TypeText, Text: "youtube.com"), new UiAction(ActionKind.PressKeys, Keys: "enter") })
+        {
+            await Task.Delay(400, ct).ConfigureAwait(false);
+            var r = await Exec(step, snap, ct).ConfigureAwait(false);
+            if (!r.Success) return Fail(r.Message);
+        }
+
+        // YouTube's search box, then the song
+        UiSnapshot? page = null; UiElementInfo? box = null;
+        for (int i = 0; i < 20 && box == null; i++)
+        {
+            await Task.Delay(600, ct).ConfigureAwait(false);
+            page = _reader.SnapshotForegroundAll(ownWindow);
+            if (page == null) continue;
+            if (!InBrowser(page)) return Lost();
+            box = page.Elements.FirstOrDefault(e => e.ControlType is "ComboBox" or "Edit" && Fold(e.Name) is "search" or "tim kiem" && !e.Bounds.IsEmpty);
+        }
+        if (box == null || page == null) return Fail(L(lang, "YouTube didn't show its search box.", "YouTube không hiện ô tìm kiếm."));
+        foreach (var step in new[] { new UiAction(ActionKind.Click, ElementId: box.Id), new UiAction(ActionKind.PressKeys, Keys: "ctrl+a"), new UiAction(ActionKind.TypeText, Text: query), new UiAction(ActionKind.PressKeys, Keys: "enter") })
+        {
+            var r = await Exec(step, page, ct).ConfigureAwait(false);
+            if (!r.Success) return Fail(r.Message);
+            await Task.Delay(300, ct).ConfigureAwait(false);
+        }
+
+        // best matching video link below the search box (tab titles and the box itself echo the query too)
+        UiElementInfo? best = null; UiSnapshot? results = null;
+        for (int i = 0; i < 8 && best == null; i++)
+        {
+            await Task.Delay(i == 0 ? 2000 : 1000, ct).ConfigureAwait(false);
+            results = _reader.SnapshotForegroundAll(ownWindow);
+            if (results == null) continue;
+            if (!InBrowser(results)) return Lost();
+            // video titles are Text with a spoken duration ("IDK - MCK 3 minutes, 17 seconds"); the sidebar sits left of the search box
+            var below = results.Elements.Where(e => e.ControlType is "Text" or "Hyperlink" && e.Bounds.Top > box.Bounds.Bottom && e.Bounds.Left > box.Bounds.Left - 100).ToList();
+            var videos = below.Where(e => YouTubeDuration.IsMatch(e.Name)).ToList();
+            best = BestSongMatch(results with { Elements = videos.Count > 0 ? videos : below }, query);
+        }
+        if (best == null || results == null)
+            return Fail(L(lang, $"I searched YouTube for \"{query}\" but couldn't spot a matching video. Pick one from the list, meow.",
+                                $"Miri đã tìm \"{query}\" trên YouTube nhưng không thấy video phù hợp. Bạn chọn trong danh sách nhé, meo."));
+        _events.OnMood(PetMood.Pointing);
+        var click = await Exec(new UiAction(ActionKind.Click, ElementId: best.Id), results, ct).ConfigureAwait(false);
+        _events.OnMood(click.Success ? PetMood.Happy : PetMood.Confused);
+        reply.Say(click.Success
+            ? L(lang, $"Playing \"{best.Name}\" on YouTube in {browser}. Enjoy, meow.", $"Đang phát \"{best.Name}\" trên YouTube trong {browser}. Nghe vui nhé, meo.")
+            : L(lang, $"I found \"{best.Name}\" but couldn't open it: {click.Message}", $"Miri thấy \"{best.Name}\" nhưng không mở được: {click.Message}"));
+        return reply.Text;
+
+        string Fail(string why)
+        {
+            _events.OnMood(PetMood.Confused);
+            reply.Say(why);
+            return reply.Text;
+        }
+        string Lost() => Fail(L(lang, "The browser lost focus while I was searching, so I stopped. Nothing else was touched.",
+                                      "Trình duyệt bị mất tiêu điểm khi Miri đang tìm nên Miri dừng lại. Không đụng gì khác."));
     }
 
     /// <summary>A "Play" button drawn inside a result row (Sonora puts one on every song / artist / album row).</summary>

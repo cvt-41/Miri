@@ -61,7 +61,7 @@ if (-not $ollama) {
             try {
                 $ProgressPreference = 'SilentlyContinue'   # the progress bar makes Invoke-WebRequest very slow on PowerShell 5.1
                 Invoke-WebRequest 'https://ollama.com/download/OllamaSetup.exe' -OutFile $setup -UseBasicParsing
-                Start-Process $setup -Wait
+                (Start-Process $setup -PassThru).WaitForExit()   # -Wait would also wait for "ollama app.exe", which setup leaves running
             } catch { Write-Host "Download failed: $($_.Exception.Message)" }
             finally { Remove-Item $setup -ErrorAction SilentlyContinue }
         }

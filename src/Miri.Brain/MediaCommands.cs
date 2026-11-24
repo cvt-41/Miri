@@ -1,4 +1,4 @@
-using System.Text;
+﻿using System.Text;
 using System.Text.RegularExpressions;
 
 namespace Miri.Brain;
@@ -35,7 +35,7 @@ internal static class MediaCommands
     private const RegexOptions Opt = RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.CultureInvariant;
 
     // Music apps Miri knows how to drive with the search recipe. Others still get media keys.
-    private const string Apps = @"sonora|spotify|youtube music|yt music|apple music|itunes|groove|media player|vlc|foobar2000|musicbee|aimp|winamp";
+    private const string Apps = @"sonora|spotify|youtube music|yt music|youtube|apple music|itunes|groove|media player|vlc|foobar2000|musicbee|aimp|winamp";
 
     private static readonly Regex AppSuffix = new(
         @"\s+(?:on|in|using|with|from|via|trên|bằng|ở|trong|qua)\s+(?:the\s+|app\s+|ứng dụng\s+)?(?<app>" + Apps + @")(?:\s+app)?$", Opt);
