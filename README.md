@@ -8,7 +8,7 @@
 
 ---
 
-A tiny pixel kitten who lives on your Windows desktop. She walks along your taskbar and window title bars, naps, gets petted, eats, teases you now and then, and when you ask, she chats and works your apps for you. Her brain runs **entirely on your PC** through [Ollama](https://ollama.com), so no account and no cloud AI. (This app is just a habit, meant no serious effort, just enjoy it and send your feedback if you feels interested)
+A tiny pixel kitten who lives on your Windows desktop. She walks along your taskbar and window title bars, naps, gets petted, eats, teases you now and then, and when you ask, she chats and works your apps for you. Her brain runs **entirely on your PC** through [Ollama](https://ollama.com), so no account and no cloud AI. **(This app is just a habit, meant no serious effort, just enjoy it and send your feedback if you feels interested)**
 
 ## What she does
 
