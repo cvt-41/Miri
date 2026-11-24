@@ -4,3 +4,4 @@ obj/
 *.user
 dist/
 graphify-out/
+msg.txt
