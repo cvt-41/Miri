@@ -30,6 +30,10 @@ internal sealed class AppShell : IMiriEvents, IApprovalGate
         _settings = settings;
         _pet = pet;
         _bubble = bubble;
+        _pet.ClickThroughChanged += on =>   // the bubble can sit on the click target too
+        {
+            if (on) Win32.AddExStyle(_bubble.Handle, Win32.WS_EX_TRANSPARENT); else Win32.RemoveExStyle(_bubble.Handle, Win32.WS_EX_TRANSPARENT);
+        };
         _highlight = highlight;
 
         _bubble.Submitted += OnSubmitted;
@@ -174,6 +178,7 @@ internal sealed class AppShell : IMiriEvents, IApprovalGate
         {
             if (!PointAt(screenBounds) || _pet.IsDragging) return;
             await Task.WhenAny(there.Task, Task.Delay(6000));
+            _pet.PassClicksFor(TimeSpan.FromSeconds(2.5));   // the executor clicks right under her paw next
         }
         finally
         {

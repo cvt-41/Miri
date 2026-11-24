@@ -1,4 +1,4 @@
-using System.Windows.Threading;
+﻿using System.Windows.Threading;
 using Miri.Core;
 using Miri.Hands;
 using Miri.Pet;
@@ -42,6 +42,7 @@ public sealed class Mischief
 
     public void Start() => _timer.Start();
 
+
     /// <summary>The pure part of the safety gate (the foreground-window checks live in <see cref="Tease"/>).</summary>
     public static bool MayTease(bool enabled, long nowMs, long nextAtMs, bool petFree, bool uiBusy, uint idleMs, bool mouseDown) =>
         enabled && nowMs >= nextAtMs && petFree && !uiBusy && idleMs >= MinIdleMs && idleMs <= MaxIdleMs && !mouseDown;
@@ -61,6 +62,16 @@ public sealed class Mischief
         try
         {
             long started = Environment.TickCount64;
+            // a player is open (in front or not): half the time she goes for its progress bar instead
+            var media = Tease.IsMedia(fg) ? fg : Tease.FindMediaWindow(fg.Hwnd, _ownPid);
+            if (media != null && _rng.NextDouble() < 0.5)
+            {
+                _nextAtMs = started + Minutes(15, 40);   // one try per slot, whatever happens next
+                if (!await BringForwardAsync(fg, media, started)) return;
+                if (await Task.Run(() => Tease.FindSeekBar(media)) is { } bar)
+                    using (bar) await SeekTeaseAsync(media, bar, started);
+                return;
+            }
             bool browser = Tease.IsChromium(fg.Process);
             Tease.Window? to = null;
             Drawing.Rectangle reach;
@@ -98,8 +109,50 @@ public sealed class Mischief
         }
     }
 
+    /// <summary>Taps the player's taskbar button and brings it in front (no-op if it already is). False if anything changed meanwhile.</summary>
+    private async Task<bool> BringForwardAsync(Tease.Window fg, Tease.Window media, long started)
+    {
+        if (media.Hwnd == fg.Hwnd) return true;
+        _nextAtMs = started + Minutes(15, 40);
+        var btn = await Task.Run(() => Tease.TaskbarButton(media));
+        var reach = btn.IsEmpty ? new Drawing.Rectangle(media.Bounds.X + media.Bounds.Width / 2 - 60, media.Bounds.Y, 120, 30) : btn;
+        if (!await ReachAsync(reach)) return false;
+        bool still = _settings.Mischief && !_pet.Paused && !_pet.IsDragging && !_uiBusy() && !Tease.AnyMouseButtonDown() &&
+                     PetController.IdleMilliseconds() >= Environment.TickCount64 - started &&
+                     Tease.Foreground(_ownPid)?.Hwnd == fg.Hwnd;
+        if (!still || !Tease.SwitchTo(media.Hwnd)) return false;
+        await Task.Delay(700);   // let it come forward and draw
+        return Tease.Foreground(_ownPid)?.Hwnd == media.Hwnd;
+    }
+
+    /// <summary>
+    /// Music or YouTube in front: she hops onto the progress dot, pulls it back ~3 s, and under 2 s later puts the song
+    /// back where it would have been. Attention, not annoyance: no listening time is lost.
+    /// </summary>
+    private async Task SeekTeaseAsync(Tease.Window fg, Tease.SeekBar bar, long started)
+    {
+        _nextAtMs = started + Minutes(15, 40);
+        var dot = await Task.Run(bar.Dot);
+        if (!await ReachAsync(new Drawing.Rectangle(dot.X - 4, dot.Y - 4, 8, 8), jumpLeftOf: true)) return;
+        bool still = _settings.Mischief && !_pet.Paused && !_pet.IsDragging && !_uiBusy() && !Tease.AnyMouseButtonDown() &&
+                     PetController.IdleMilliseconds() >= Environment.TickCount64 - started &&
+                     Tease.Foreground(_ownPid)?.Hwnd == fg.Hwnd;
+        if (!still) return;
+
+        _pet.HoldPose(PetAnimation.PullDot, 2.3);   // on the bar, gripping the dot; drops down after
+        bool pulled = await Task.Run(bar.PullBack);
+        if (pulled)
+        {
+            await Task.Delay(1500);
+            bool restored = await Task.Run(bar.Restore);
+            if (!restored) await Task.Run(bar.Restore);   // one retry: never leave the song rewound
+        }
+        _pet.Play(PetAnimation.Smug, 2.5);
+        Tease.Log($"Mischief: tugged the progress bar back a moment in \"{fg.Title}\" ({fg.Process})" + (pulled ? "" : " - didn't work"));
+    }
+
     /// <summary>True when she reached it (or after 4 s); false if she was picked up.</summary>
-    private async Task<bool> ReachAsync(Drawing.Rectangle physical)
+    private async Task<bool> ReachAsync(Drawing.Rectangle physical, bool jumpLeftOf = false)
     {
         var there = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
         void Reached() => there.TrySetResult(true);
@@ -108,7 +161,7 @@ public sealed class Mischief
         _pet.PositionChanged += Moved;
         try
         {
-            _pet.ReachFor(ScreenMetrics.ToDip(physical));
+            if (jumpLeftOf) _pet.JumpLeftOf(ScreenMetrics.ToDip(physical)); else _pet.ReachFor(ScreenMetrics.ToDip(physical));
             return await Task.WhenAny(there.Task, Task.Delay(4000)) != there.Task || there.Task.Result;
         }
         finally

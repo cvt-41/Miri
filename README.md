@@ -22,6 +22,7 @@ A tiny pixel kitten who lives on your Windows desktop. She walks along your task
 | **Feed her** | Tray icon → **Feed Miri**. |
 | **Pick her up** | Drag her. Drop her on a window title bar, a toolbar, a video player or a text box and she perches on its edge. |
 | **Pick her brain** | On first start she suggests a chat model and a vision model that fit your PC (tray → **Choose models…** to change later). She needs both: one to answer, one to see your screen. |
+| **Play** | Tray → **Play with Miri**: she chases your cursor, pounces and tugs it. Hold it still just above her head and she rides it; shake the mouse to throw her off. |
 | **Teasing** | Every so often, while you're idle, she switches your browser tab or app, then looks smug. Tray → **Let Miri tease me** turns it off. |
 
 She never touches password fields or password managers, and never types anything that looks like a secret.

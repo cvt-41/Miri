@@ -16,6 +16,29 @@ internal static class NativeMethods
 
     public delegate bool EnumWindowsProc(IntPtr hWnd, IntPtr lParam);
 
+    [DllImport("user32.dll")] public static extern bool SetCursorPos(int x, int y);
+    [DllImport("user32.dll")] private static extern IntPtr CreateCursor(IntPtr hInst, int xHot, int yHot, int w, int h, byte[] and, byte[] xor);
+    [DllImport("user32.dll")] private static extern bool SetSystemCursor(IntPtr cursor, uint id);
+    [DllImport("user32.dll")] private static extern bool SystemParametersInfo(uint action, uint param, IntPtr pv, uint winIni);
+
+    private static readonly uint[] PointerIds = { 32512, 32513, 32649, 32515, 32650, 32514 };   // arrow, I-beam, hand, cross, app-starting, wait
+    public static bool PointerHidden { get; private set; }
+
+    /// <summary>Hides the mouse pointer everywhere by swapping in blank system cursors (restored by <see cref="ShowPointer"/>).</summary>
+    public static void HidePointer()
+    {
+        if (PointerHidden) return;
+        PointerHidden = true;
+        foreach (var id in PointerIds)   // SetSystemCursor takes ownership, so each id gets its own blank cursor
+            SetSystemCursor(CreateCursor(IntPtr.Zero, 0, 0, 32, 32, Enumerable.Repeat((byte)0xFF, 128).ToArray(), new byte[128]), id);
+    }
+
+    /// <summary>Reloads the user's own pointer scheme. Safe to call any time (also at start and exit, in case of a crash mid-hug).</summary>
+    public static void ShowPointer()
+    {
+        PointerHidden = false;
+        SystemParametersInfo(0x0057 /* SPI_SETCURSORS */, 0, IntPtr.Zero, 0);
+    }
     [DllImport("user32.dll")] public static extern bool EnumWindows(EnumWindowsProc cb, IntPtr lParam);
     [DllImport("user32.dll")] public static extern IntPtr WindowFromPoint(POINT p);
     [DllImport("user32.dll")] public static extern IntPtr GetAncestor(IntPtr hWnd, uint flags);

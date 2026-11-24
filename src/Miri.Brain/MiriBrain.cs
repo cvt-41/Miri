@@ -76,6 +76,12 @@ public sealed class MiriBrain : IMiriBrain, IDisposable
         userText = (userText ?? "").Trim();
         var lang = DetectLanguage(userText);
         if (userText.Length == 0) return;
+        var corrected = TypoFixer.Fix(userText);
+        if (!ReferenceEquals(corrected, userText))
+        {
+            _events.OnStatus(L(lang, $"I read that as: {corrected}", $"Miri hiểu là: {corrected}"));
+            userText = corrected;
+        }
 
         var reply = new ReplyWriter(_events);
         CancelBackgroundMemory();   // a pending/running memory extraction must never delay a new question

@@ -5,6 +5,7 @@
     <UseWPF>true</UseWPF>
     <UseWindowsForms>true</UseWindowsForms>
     <TargetFramework>net9.0-windows10.0.19041.0</TargetFramework>
+    <StartupObject>Miri.App.Program</StartupObject>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <ApplicationManifest>app.manifest</ApplicationManifest>
@@ -35,4 +36,8 @@
     <Content Include="..\..\assets\sprites\miri.png;..\..\assets\sprites\miri.json" LinkBase="assets\sprites" CopyToOutputDirectory="PreserveNewest" Condition="Exists('..\..\assets\sprites\miri.png')" />
   </ItemGroup>
 
+  <ItemGroup>
+    <!-- Use Windows' own NLS text services, not ICU: some trimmed Windows builds ship without icu.dll and .NET would fail-fast at start (0xc0000602). -->
+    <RuntimeHostConfigurationOption Include="System.Globalization.UseNls" Value="true" />
+  </ItemGroup>
 </Project>

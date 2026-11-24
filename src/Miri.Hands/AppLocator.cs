@@ -1,4 +1,4 @@
-using System.Diagnostics;
+﻿using System.Diagnostics;
 using System.Globalization;
 using System.Text;
 
@@ -78,7 +78,7 @@ internal static class AppLocator
             else if (Acronym(nWords) == qCompact && qCompact.Length >= 2) score = 70;         // "vs code"→? / "vlc"
             else if (qWords.All(w => nWords.Any(nw => nw.StartsWith(w, StringComparison.Ordinal)))) score = 60;
             else if (nCompact.Contains(qCompact, StringComparison.Ordinal) && qCompact.Length >= 3) score = 50;
-            else if (qCompact.Length >= 4 && Levenshtein(qCompact, nCompact) <= Math.Max(1, qCompact.Length / 4)) score = 40;
+            else if (qCompact.Length >= 4 && Levenshtein(qCompact, nCompact) <= Math.Max(1, qCompact.Length / 4)) score = 55;   // typo ("spotfy"): good enough to open
             if (score > 0)
             {
                 score -= Math.Min(15, Math.Max(0, n.Length - q.Length) / 3);   // prefer shorter names
@@ -193,6 +193,7 @@ internal static class AppLocator
     {
         if (a.Length == 0) return b.Length;
         if (b.Length == 0) return a.Length;
+        var prev2 = new int[b.Length + 1];   // row i-2, for swapped neighbours ("discrod")
         var prev = new int[b.Length + 1];
         var cur = new int[b.Length + 1];
         for (int j = 0; j <= b.Length; j++) prev[j] = j;
@@ -203,8 +204,9 @@ internal static class AppLocator
             {
                 int cost = a[i - 1] == b[j - 1] ? 0 : 1;
                 cur[j] = Math.Min(Math.Min(cur[j - 1] + 1, prev[j] + 1), prev[j - 1] + cost);
+                if (i > 1 && j > 1 && a[i - 1] == b[j - 2] && a[i - 2] == b[j - 1]) cur[j] = Math.Min(cur[j], prev2[j - 2] + 1);
             }
-            (prev, cur) = (cur, prev);
+            (prev2, prev, cur) = (prev, cur, prev2);
         }
         return prev[b.Length];
     }

@@ -542,12 +542,20 @@ internal sealed class AgentLoop
         string proc = snap.ProcessName;
         bool InBrowser(UiSnapshot s) => s.ProcessName.Equals(proc, StringComparison.OrdinalIgnoreCase);
 
-        // new tab (never take over the user's page), then type the address like a person
-        foreach (var step in new[] { new UiAction(ActionKind.PressKeys, Keys: "ctrl+t"), new UiAction(ActionKind.TypeText, Text: "youtube.com"), new UiAction(ActionKind.PressKeys, Keys: "enter") })
+        // reuse a YouTube tab that is already open; otherwise a new tab (never take over the user's page)
+        var tabs = _reader.SnapshotForegroundAll(ownWindow) ?? snap;
+        var ytTab = tabs.Elements.FirstOrDefault(e => e.ControlType == "TabItem" && e.Name.Contains("YouTube", StringComparison.OrdinalIgnoreCase));
+        if (!snap.WindowTitle.Contains("YouTube", StringComparison.OrdinalIgnoreCase))
         {
-            await Task.Delay(400, ct).ConfigureAwait(false);
-            var r = await Exec(step, snap, ct).ConfigureAwait(false);
-            if (!r.Success) return Fail(r.Message);
+            var steps = ytTab != null
+                ? new[] { new UiAction(ActionKind.Click, ElementId: ytTab.Id) }
+                : new[] { new UiAction(ActionKind.PressKeys, Keys: "ctrl+t"), new UiAction(ActionKind.TypeText, Text: "youtube.com"), new UiAction(ActionKind.PressKeys, Keys: "enter") };
+            foreach (var step in steps)
+            {
+                await Task.Delay(400, ct).ConfigureAwait(false);
+                var r = await Exec(step, tabs, ct).ConfigureAwait(false);
+                if (!r.Success) return Fail(r.Message);
+            }
         }
 
         // YouTube's search box, then the song
@@ -561,7 +569,9 @@ internal sealed class AgentLoop
             box = page.Elements.FirstOrDefault(e => e.ControlType is "ComboBox" or "Edit" && Fold(e.Name) is "search" or "tim kiem" && !e.Bounds.IsEmpty);
         }
         if (box == null || page == null) return Fail(L(lang, "YouTube didn't show its search box.", "YouTube không hiện ô tìm kiếm."));
-        foreach (var step in new[] { new UiAction(ActionKind.Click, ElementId: box.Id), new UiAction(ActionKind.PressKeys, Keys: "ctrl+a"), new UiAction(ActionKind.TypeText, Text: query), new UiAction(ActionKind.PressKeys, Keys: "enter") })
+        // the click alone may not focus the box (then Ctrl+A would select the whole page): "/" is YouTube's focus-search key,
+        // and if the box already had focus, Ctrl+A selects that stray "/" so the song replaces it
+        foreach (var step in new[] { new UiAction(ActionKind.Click, ElementId: box.Id), new UiAction(ActionKind.TypeText, Text: "/"), new UiAction(ActionKind.PressKeys, Keys: "ctrl+a"), new UiAction(ActionKind.TypeText, Text: query), new UiAction(ActionKind.PressKeys, Keys: "enter") })
         {
             var r = await Exec(step, page, ct).ConfigureAwait(false);
             if (!r.Success) return Fail(r.Message);

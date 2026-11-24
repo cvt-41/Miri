@@ -53,6 +53,8 @@ public sealed class PetBehaviour
     public bool Paused { get; set; }
     /// <summary>Stay put (e.g. while the chat bubble is open).</summary>
     public bool HoldStill { get; set; }
+    /// <summary>Carried by the cursor during play (looks happy, not startled).</summary>
+    public bool Riding { get; set; }
     public Floor? CurrentFloor => _floor;
     public bool PointLeft { get; private set; }
 
@@ -131,7 +133,31 @@ public sealed class PetBehaviour
         }
 
         // jump onto the target's top edge, reaching paw above its center
-        double x1 = Math.Clamp(left ? cx - 0.2 * s : cx - 0.8 * s, work.Left, Math.Max(work.Left, work.Right - s));
+        JumpOnto(target, work, left ? cx - 0.2 * s : cx - 0.8 * s, left);
+    }
+
+    /// <summary>Jump onto <paramref name="target"/>'s top edge standing just left of its center, facing it (her paw is at its center).</summary>
+    public void JumpLeftOf(Rect target, Rect work)
+    {
+        if (State is PetState.Dragged || target.IsEmpty) return;
+        if (State == PetState.Sleeping) State = PetState.Sitting;
+        _reachPending = true;
+        JumpOnto(target, work, target.X + target.Width / 2 - 0.85 * Size, false);
+    }
+
+    /// <summary>While standing where she jumped (Pointing), hold <paramref name="anim"/> for <paramref name="seconds"/>, then drop down as usual.</summary>
+    public void HoldPose(PetAnimation anim, double seconds, bool faceLeft = false)
+    {
+        if (State != PetState.Pointing) return;
+        _reach = anim;
+        PointLeft = faceLeft;
+        _pointUntil = _clock + seconds;
+    }
+
+    private void JumpOnto(Rect target, Rect work, double x, bool left)
+    {
+        double s = Size;
+        double x1 = Math.Clamp(x, work.Left, Math.Max(work.Left, work.Right - s));
         double land = target.Top;
         _perch = new Floor(IntPtr.Zero, land, Math.Min(target.Left, x1 + s * 0.35), Math.Max(target.Right, x1 + s * 0.65), --_perchKey);
         double apex = Math.Min(FeetY, land) - Math.Max(40, 0.25 * Math.Abs(x1 - X));
@@ -238,7 +264,7 @@ public sealed class PetBehaviour
         _clock += dt;
 
         if (State == PetState.Dragged)
-            return (PetAnimation.Confused, false);
+            return (Riding ? PetAnimation.Happy : PetAnimation.Confused, false);
 
         if (State == PetState.Jumping)
         {

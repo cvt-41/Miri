@@ -46,7 +46,8 @@ Set-ItemProperty $key UninstallString "powershell.exe -NoProfile -ExecutionPolic
 Set-ItemProperty $key NoModify 1 -Type DWord
 Set-ItemProperty $key NoRepair 1 -Type DWord
 
-# ---- Ollama (Miri's brain runs locally through it)
+# ---- Ollama (Miri's brain runs locally through it). Never let a failure here stop Miri from starting.
+try {
 $ollama = (Get-Command ollama -ErrorAction SilentlyContinue).Source
 if (-not $ollama) { $p = Join-Path $env:LOCALAPPDATA 'Programs\Ollama\ollama.exe'; if (Test-Path $p) { $ollama = $p } }
 if (-not $ollama) {
@@ -84,5 +85,22 @@ if ($ollama) {
     }
 }
 
+} catch { Write-Host "Ollama/model setup hit a problem: $($_.Exception.Message)`nMiri will still start; she can download models herself (tray > Choose models...)." }
+
 Write-Host "`nDone. Starting Miri..."
-Start-Process $exe
+Start-Process $exe -WorkingDirectory $dest
+Start-Sleep 6
+if (Get-Process Miri.App -ErrorAction SilentlyContinue) { Write-Host "Miri is running: look for the white kitten above your taskbar (and her icon in the tray)." }
+else {
+    # she crashed on start: show why, so it can be reported
+    Write-Host "Miri didn't stay open." -ForegroundColor Yellow
+    $log = Join-Path $env:LOCALAPPDATA 'Miri\miri-errors.log'
+    if (Test-Path $log) { Write-Host "Last errors ($log):"; Get-Content $log -Tail 15 }
+    $trail = Join-Path $env:LOCALAPPDATA 'Miri\startup.log'
+    if (Test-Path $trail) { Write-Host "Startup steps reached:"; Get-Content $trail }
+    $crash = Join-Path $env:LOCALAPPDATA 'Miri-crash.log'
+    if (Test-Path $crash) { Write-Host "Crash details ($crash):"; Get-Content $crash | Select-Object -First 25 }
+    # .NET's own entry names the real error; "Application Error" only says it crashed
+    Get-WinEvent -FilterHashtable @{ LogName = 'Application'; ProviderName = '.NET Runtime'; StartTime = (Get-Date).AddMinutes(-2) } -ErrorAction SilentlyContinue |
+        Where-Object { $_.Message -match 'Miri' } | Select-Object -First 1 | ForEach-Object { Write-Host $_.Message }
+}

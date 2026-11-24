@@ -1,4 +1,4 @@
-using System.Windows;
+﻿using System.Windows;
 using System.Windows.Input;
 using System.Windows.Interop;
 using System.Windows.Media;
@@ -44,6 +44,11 @@ public sealed class PetWindow : Window
         Left = -10000; Top = -10000;   // until the controller places us
 
         _pet.PositionChanged += OnPetMoved;
+        _pet.ClickThroughChanged += on =>
+        {
+            if (Handle == IntPtr.Zero) return;
+            if (on) Win32.AddExStyle(Handle, Win32.WS_EX_TRANSPARENT); else Win32.RemoveExStyle(Handle, Win32.WS_EX_TRANSPARENT);
+        };
 
         _topmostTimer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(2) };
         _topmostTimer.Tick += (_, _) => KeepOnTop();

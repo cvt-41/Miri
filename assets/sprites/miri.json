@@ -169,6 +169,56 @@
         400,
         400
       ]
+    },
+    {
+      "Name": "Sad",
+      "Row": 16,
+      "Frames": 2,
+      "Fps": 1.11,
+      "DurationsMs": [
+        900,
+        900
+      ]
+    },
+    {
+      "Name": "Hug",
+      "Row": 17,
+      "Frames": 2,
+      "Fps": 3.33,
+      "DurationsMs": [
+        300,
+        300
+      ]
+    },
+    {
+      "Name": "Nudge",
+      "Row": 18,
+      "Frames": 2,
+      "Fps": 4.55,
+      "DurationsMs": [
+        220,
+        220
+      ]
+    },
+    {
+      "Name": "Tug",
+      "Row": 19,
+      "Frames": 2,
+      "Fps": 5,
+      "DurationsMs": [
+        200,
+        200
+      ]
+    },
+    {
+      "Name": "PullDot",
+      "Row": 20,
+      "Frames": 2,
+      "Fps": 4.55,
+      "DurationsMs": [
+        220,
+        220
+      ]
     }
   ]
 }

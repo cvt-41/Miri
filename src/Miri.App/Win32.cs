@@ -1,4 +1,4 @@
-using System.Runtime.InteropServices;
+﻿using System.Runtime.InteropServices;
 
 namespace Miri.App;
 
@@ -19,6 +19,12 @@ internal static class Win32
     [DllImport("user32.dll")] public static extern bool UnregisterHotKey(IntPtr h, int id);
     [DllImport("user32.dll")] public static extern bool DestroyIcon(IntPtr h);
     [DllImport("user32.dll")] public static extern bool SetForegroundWindow(IntPtr h);
+
+    public static void RemoveExStyle(IntPtr hwnd, long bits)
+    {
+        long ex = GetWindowLongPtr(hwnd, GWL_EXSTYLE).ToInt64();
+        SetWindowLongPtr(hwnd, GWL_EXSTYLE, new IntPtr(ex & ~bits));
+    }
 
     public static void AddExStyle(IntPtr hwnd, long bits)
     {

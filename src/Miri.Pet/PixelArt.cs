@@ -375,6 +375,47 @@ internal static class PixelArt
     private static readonly string[] SparkleSmall = { ".y.", "yhy", ".y." };
     private static readonly string[] SparkleBig = { "..y..", "..y..", "yyhyy", "..y..", "..y.." };
 
+    // ------------------------------------------------------- play: sad / hug / nudge / tug
+
+    private static readonly string[] EyesSad = // big wet puppy eyes looking up (x=8, y=9)
+    {
+        "gggg____gggg",
+        "ghhg____ghhg",
+        "gepg____gpeg",
+        "wggw____wggw",
+    };
+    private static readonly string[] Tear = { "l", "l" };
+    private static readonly string[] MouthFrown = { "wwooww", "wowwow" }; // x=11, y=14
+    private static readonly string[] EarsFlat = // x=3, y=3: ears laid back like airplane wings
+    {
+        "xxxxxxxxxxxxxxxxxxxxxx",
+        "xxxxxxxxxxxxxxxxxxxxxx",
+        "xxxxxxxxxxxxxxxxxxxxxx",
+        "oooo..............oooo",
+        "onnnoooooooooooooonnno",
+    };
+    private static readonly string[] Pointer = // a tiny mouse pointer (the toy)
+    {
+        "p....",
+        "pp...",
+        "php..",
+        "phhp.",
+        "phhhp",
+        "phpp.",
+        "pp.p.",
+    };
+    private static readonly string[] PawBlob = { ".ooo.", "osswo", "ossso", ".ooo." };   // a shaded front paw, readable on her white chest
+    private static readonly string[] EyesSqueeze = // >  < : squeezing with effort, still smiling
+    {
+        "owww____wwwo",
+        "woow____woow",
+        "owww____wwwo",
+        "wwww____wwww",
+    };
+    private static readonly string[] PawGrip = { ".ooooooo", "owwwwsso", "osssssso", ".ooooooo" }; // a front paw stretched right, gripping
+    private static readonly string[] SeekDot = { ".ooo.", "orrro", "orhro", "orrro", ".ooo." };   // a progress-bar dot (the toy), shiny
+    private static readonly string[] Swish = { "o.", ".o", "o." };                                  // little motion marks
+
     private static string[] Shade(string[] rows) => rows.Select(r => r.Replace('w', 's')).ToArray();
     private static string[] FlipV(string[] rows) => rows.Reverse().ToArray();
 
@@ -441,6 +482,11 @@ internal static class PixelArt
                 EatFrame(0).Pixels(), EatFrame(1).Pixels(), EatFrame(2).Pixels(), EatFrame(3).Pixels(),
             }),
             new("Smug", new[] { 400, 400 }, new() { SmugFrame(0).Pixels(), SmugFrame(1).Pixels() }),
+            new("Sad", new[] { 900, 900 }, new() { SadFrame(0).Pixels(), SadFrame(1).Pixels() }),
+            new("Hug", new[] { 300, 300 }, new() { HugFrame(0).Pixels(), HugFrame(1).Pixels() }),
+            new("Nudge", new[] { 220, 220 }, new() { NudgeFrame(0).Pixels(), NudgeFrame(1).Pixels() }),
+            new("Tug", new[] { 200, 200 }, new() { TugFrame(0).Pixels(), TugFrame(1).Pixels() }),
+            new("PullDot", new[] { 220, 220 }, new() { TugFrame(0, SeekDot).Pixels(), TugFrame(1, SeekDot).Pixels() }),
         };
         return list;
     }
@@ -597,20 +643,37 @@ internal static class PixelArt
     }
 
     // Standing on a ledge (row 31), leaning forward, near front paw pressing down at the bottom-right.
-    private static Canvas ReachDownFrame(int f)
+    private static readonly string[] EyesDownRight = // focused, looking down at what she presses
     {
-        var c = new Canvas();
-        c.Stamp(LegFar, 6, 25);
-        c.Stamp(LegNear, 1, 25);
-        c.Stamp(LegFar, 15, 25);
-        c.Stamp(WalkTail, 0, 5);
-        var body = new Canvas();
-        body.Stamp(WalkBody, 0, 14);
-        c.StampCanvas(body.ShearY(4, 0.15), 0, 0);
-        c.StampCanvas(SideHead(EyesLookRight), 4, 7);
-        c.Stamp(ArmDown, 20, 23 + f);
-        return c;
-    }
+        "wwww____wwww",
+        "wggw____wggw",
+        "ghep____ghep",
+        "wgpp____wgpp",
+    };
+    // Her near front paw curled down to the right; the pad (bottom-right) is what touches the target.
+    private static readonly string[] ArmTap =
+    {
+        "ooo.........",
+        "wwwo........",
+        "wwwwo.......",
+        "owwwwo......",
+        ".owwwso.....",
+        "..owwwso....",
+        "...owwwso...",
+        "....owwwsoo.",
+        ".....owwwwwo",
+        ".....onwnwso",
+        "......ooooo.",
+    };
+
+    // Sitting upright on the ledge, eyes on her paw, tapping down at the bottom-right (typing / pressing).
+    private static Canvas ReachDownFrame(int f) => SitFrame(c =>
+    {
+        c.Stamp(Enumerable.Repeat("xxxxxxx", 11).ToArray(), 23, 20);   // tail tucked so the paw reads
+        c.Stamp(EyesDownRight, 8, 9);
+        c.Stamp(Blush, 8, 13); c.Stamp(Blush, 19, 13);
+        c.Stamp(ArmTap, 18, f == 0 ? 21 : 19);   // frame 1: paw lifted between taps
+    });
 
     // Being petted: eyes closed, blush, head bobbing, hearts floating up and shrinking.
     private static Canvas PurrFrame(int f)
@@ -660,6 +723,59 @@ internal static class PixelArt
     }
 
     // Teasing grin: heavy-lidded eyes, smirk, one ear tilted, tail up with a flick and a sparkle.
+    // Sitting small: ears flat, big teary eyes, little frown; the tear rolls down.
+    private static Canvas SadFrame(int f) => SitFrame(c =>
+    {
+        c.Stamp(EarsFlat, 3, 3);
+        c.Stamp(EyesSad, 8, 9);
+        c.Stamp(MouthFrown, 11, 14);
+        c.Stamp(Tear, 9, f == 0 ? 13 : 14);
+    });
+
+    // Paws wrapped around the pointer, eyes shut, blushing; a heart pops up on the squeeze.
+    private static Canvas HugFrame(int f) => SitFrame(c =>
+    {
+        c.Stamp(EyesHappy, 8, 9);
+        c.Stamp(Blush, 8, 13); c.Stamp(Blush, 19, 13);
+        int y = f == 0 ? 19 : 18;                 // squeeze: pointer and paws lift a pixel
+        c.Stamp(Pointer, 12, y);
+        c.Stamp(PawBlob, 8, y + 3);
+        c.Stamp(PawBlob, 16, y + 3);
+        if (f == 0) c.Stamp(HeartSmall, 23, 4); else c.Stamp(HeartBig, 23, 2);
+    });
+
+    // Rubbing her head on it: the head tips sideways and back, happy and blushing.
+    private static Canvas NudgeFrame(int f)
+    {
+        var c = new Canvas();
+        c.Stamp(SitBody, 0, 17);
+        c.Stamp(new[] { "........owwwwwwwwwso" }, 0, 16);   // fill the chest so the tipped head leaves no hole
+        var head = SideHead(EyesHappy);
+        head.Stamp(Blush, 8, 13); head.Stamp(Blush, 19, 13);
+        head.Stamp(new[] { "wwwwwwww" }, 10, 17);
+        c.StampCanvas(head.ShearY(13.5, f == 0 ? 0.12 : 0.2), f, 0);
+        c.Stamp(Swish, 25, 9 + f);
+        return c;
+    }
+
+    // Leaning back, both paws gripping the pointer to her right, determined > < eyes.
+    private static Canvas TugFrame(int f, string[]? toy = null)
+    {
+        var c = new Canvas();
+        c.Stamp(SitBody, 0, 17);
+        c.Stamp(new[] { "........owwwwwwwwwso" }, 0, 16);
+        var head = SideHead(EyesSqueeze);
+        head.Stamp(Blush, 8, 13); head.Stamp(Blush, 19, 13);
+        head.Stamp(new[] { "wwwwwwww" }, 10, 17);
+        c.StampCanvas(head, -1 - f, 0);
+        c.Stamp(Enumerable.Repeat("xxxxxxxx", 9).ToArray(), 22, 20);   // tail tucked away so the grip reads
+        if (toy == null) c.Stamp(Pointer, 26 - f, 15);
+        c.Stamp(PawGrip, 19 - f, 17);
+        c.Stamp(PawGrip, 19 - f, 20);
+        if (toy != null) c.Stamp(toy, 25 - f, 18);   // held in front of her paws
+        return c;
+    }
+
     private static Canvas SmugFrame(int f) => SitFrame(c =>
     {
         c.Stamp(EyesSmug, 8, 9);

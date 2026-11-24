@@ -44,23 +44,30 @@ public partial class App : System.Windows.Application
             args.SetObserved();
         };
 
+        PetController.RestorePointer();   // in case a crash mid-hug left the pointer hidden
+        Step("settings");
         var settings = MiriSettings.Load();
         string exeDir = AppContext.BaseDirectory;
 
         // sprites: user-edited png+json next to the exe wins; otherwise generate and export once
         string exportDir = SpriteFactory.FindRepoSpriteDir(exeDir) ?? Path.Combine(exeDir, "assets", "sprites");
+        Step("sprites");
         var sheet = SpriteFactory.LoadOrCreate(exeDir, exportDir);
 
+        Step("pet");
         var pet = new PetController(sheet, settings.Scale);
         try { pet.SurfaceFinder = _surfaces = new Miri.Hands.UiaSurfaceFinder(); }   // drop onto video players etc.
         catch (Exception ex) { AppShell.Log("Surface finder unavailable: " + ex.Message); }
+        Step("pet window");
         _petWindow = new PetWindow(pet);
         _petWindow.Show();                       // sets ScreenMetrics from the real DPI
 
+        Step("bubble");
         _bubble = new BubbleWindow();
         IntPtr bubbleHwnd = _bubble.Handle;      // created now so the brain can exclude it
         _highlight = new HighlightWindow();
 
+        Step("shell + brain");
         _shell = new AppShell(settings, pet, _bubble, _highlight);
         try
         {
@@ -72,15 +79,17 @@ public partial class App : System.Windows.Application
             _shell.ReportStartupError("My brain didn't start", ex);
         }
 
+        Step("tray");
         _tray = new TrayIcon(sheet, settings, pet, () => _shell.Brain, _shell.OpenChat, Quit);
         // Best effort: never leave a stale tray icon behind when the process dies without OnExit.
-        AppDomain.CurrentDomain.ProcessExit += (_, _) => DisposeTray();
+        AppDomain.CurrentDomain.ProcessExit += (_, _) => { DisposeTray(); PetController.RestorePointer(); };
         AppDomain.CurrentDomain.UnhandledException += (_, args) =>
         {
             AppShell.Log("Unhandled exception: " + args.ExceptionObject);
             if (args.IsTerminating) DisposeTray();
         };
 
+        Step("hotkeys");
         _hotkeys = new HotkeyManager(_petWindow.Handle);
         var problems = new List<string>();
         if (!_hotkeys.Register(settings.ChatHotkey, _shell.OpenChat, out var err1))
@@ -95,11 +104,25 @@ public partial class App : System.Windows.Application
             AppShell.Log("Hotkey registration failed: " + string.Join(" | ", problems));
         }
 
+        Step("start");
         pet.Start();
         var shell = _shell;
         _mischief = new Mischief(settings, pet, () => shell.IsBusy || shell.BubbleOpen);
         _mischief.Start();
-        if (!settings.ModelSetupDone) new ModelSetupWindow(settings, () => shell.Brain).Show();   // first start: pick models for this PC
+        if (!settings.ModelSetupDone) { Step("model picker"); new ModelSetupWindow(settings, () => shell.Brain).Show(); }
+        Step("ready");   // first start: pick models for this PC
+    }
+
+    /// <summary>Startup trail in %LOCALAPPDATA%\Miri\startup.log (rewritten each launch): the last line shows where a crash happened.</summary>
+    private static void Step(string what)
+    {
+        try
+        {
+            var path = Path.Combine(MiriSettings.DataDir, "startup.log");
+            if (what == "settings") File.WriteAllText(path, "");
+            File.AppendAllText(path, $"{DateTime.Now:HH:mm:ss.fff} {what}{Environment.NewLine}");
+        }
+        catch { }
     }
 
     private void DisposeTray()
@@ -115,6 +138,7 @@ public partial class App : System.Windows.Application
 
     protected override void OnExit(ExitEventArgs e)
     {
+        PetController.RestorePointer();
         try { _hotkeys?.Dispose(); } catch { }
         DisposeTray();
         if (_parts != null)

@@ -37,6 +37,7 @@ internal sealed class TrayIcon : IDisposable
         _modelMenu.DropDownOpening += async (_, _) => await FillModelsAsync();
         _pauseItem = new Forms.ToolStripMenuItem("Pause pet", null, (_, _) => TogglePause());
         var feed = new Forms.ToolStripMenuItem("Feed Miri", null, (_, _) => pet.Feed());
+        var play = new Forms.ToolStripMenuItem("Play with Miri", null, (_, _) => { if (pet.Playing) pet.StopPlay(); else pet.StartPlay(); });
         var tease = new Forms.ToolStripMenuItem("Let Miri tease me") { Checked = settings.Mischief, CheckOnClick = true };
         tease.CheckedChanged += (_, _) =>
         {
@@ -55,7 +56,7 @@ internal sealed class TrayIcon : IDisposable
 
         menu.Items.AddRange(new Forms.ToolStripItem[]
         {
-            talk, feed, new Forms.ToolStripSeparator(), _modelMenu, _pauseItem, tease, loc, pick, data, new Forms.ToolStripSeparator(), exit,
+            talk, feed, play, new Forms.ToolStripSeparator(), _modelMenu, _pauseItem, tease, loc, pick, data, new Forms.ToolStripSeparator(), exit,
         });
 
         _icon = new Forms.NotifyIcon
