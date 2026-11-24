@@ -10,6 +10,9 @@
     <ApplicationManifest>app.manifest</ApplicationManifest>
     <!-- WFO0003 is a WinForms-only hint; this is a WPF app and PerMonitorV2 must come from the manifest. -->
     <NoWarn>$(NoWarn);WFO0003</NoWarn>
+    <!-- .NET 9 marks the exe CET-compatible by default; on older Windows 10 builds with shadow stacks on,
+         the runtime fail-fasts at startup (assert: !AreShadowStacksEnabled() || UseSpecialUserModeApc()). -->
+    <CETCompat>false</CETCompat>
   </PropertyGroup>
 
   <!-- WPF and WinForms share many type names (Application, MessageBox, Point...). Keep WinForms /
