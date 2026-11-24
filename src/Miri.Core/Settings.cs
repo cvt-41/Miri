@@ -34,6 +34,9 @@ public sealed class MiriSettings
     public bool WeatherUseLocation { get; set; } = true;
     /// <summary>False until the first-start model picker was answered.</summary>
     public bool ModelSetupDone { get; set; }
+    /// <summary>Look for a newer Miri on GitHub once a day at start (reads the public release list only).</summary>
+    public bool CheckForUpdates { get; set; } = true;
+    public DateTime LastUpdateCheck { get; set; }
     /// <summary>City used for weather when location is off or unavailable (e.g. "Hanoi").</summary>
     public string WeatherCity { get; set; } = "";
 

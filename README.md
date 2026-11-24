@@ -52,7 +52,7 @@ Code layout: `Miri.Pet` (sprite, physics, perching), `Miri.Brain` (Ollama chat, 
 
 ## Privacy
 
-Everything stays on your PC except one thing: when you ask about the weather, she sends the city you named, or your location rounded to about 10 km (only if Windows location is allowed for desktop apps), to [Open-Meteo](https://open-meteo.com). Tray → **Use my location for weather** turns that off. Full details: [PRIVACY.md](PRIVACY.md).
+Everything stays on your PC except two things: a daily look at GitHub for a newer Miri release (tray → **Check for updates…**), and, when you ask about the weather, she sends the city you named, or your location rounded to about 10 km (only if Windows location is allowed for desktop apps), to [Open-Meteo](https://open-meteo.com). Tray → **Use my location for weather** turns that off. Full details: [PRIVACY.md](PRIVACY.md).
 
 ## Credits & license
 

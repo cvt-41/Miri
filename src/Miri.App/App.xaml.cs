@@ -110,7 +110,9 @@ public partial class App : System.Windows.Application
         _mischief = new Mischief(settings, pet, () => shell.IsBusy || shell.BubbleOpen);
         _mischief.Start();
         if (!settings.ModelSetupDone) { Step("model picker"); new ModelSetupWindow(settings, () => shell.Brain).Show(); }
-        Step("ready");   // first start: pick models for this PC
+        Step("ready");
+        if (settings.CheckForUpdates && DateTime.Now - settings.LastUpdateCheck > TimeSpan.FromDays(1))
+            _ = _tray.CheckForUpdatesAsync(quietIfNone: true);   // once a day; only speaks up when there is something new   // first start: pick models for this PC
     }
 
     /// <summary>Startup trail in %LOCALAPPDATA%\Miri\startup.log (rewritten each launch): the last line shows where a crash happened.</summary>

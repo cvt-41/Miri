@@ -51,12 +51,13 @@ internal sealed class TrayIcon : IDisposable
             try { _settings.Save(); } catch { }
         };
         var pick = new Forms.ToolStripMenuItem("Choose models…", null, (_, _) => new ModelSetupWindow(_settings, brain).Show());
+        var updates = new Forms.ToolStripMenuItem("Check for updates…", null, async (_, _) => await CheckForUpdatesAsync(quietIfNone: false));
         var data = new Forms.ToolStripMenuItem("Open data folder", null, (_, _) => OpenDataFolder());
         var exit = new Forms.ToolStripMenuItem("Quit", null, (_, _) => quit());
 
         menu.Items.AddRange(new Forms.ToolStripItem[]
         {
-            talk, feed, play, new Forms.ToolStripSeparator(), _modelMenu, _pauseItem, tease, loc, pick, data, new Forms.ToolStripSeparator(), exit,
+            talk, feed, play, new Forms.ToolStripSeparator(), _modelMenu, _pauseItem, tease, loc, pick, updates, data, new Forms.ToolStripSeparator(), exit,
         });
 
         _icon = new Forms.NotifyIcon
@@ -66,7 +67,39 @@ internal sealed class TrayIcon : IDisposable
             ContextMenuStrip = menu,
             Visible = true,
         };
+        _icon.BalloonTipClicked += (_, _) => OpenUpdatePage();
         _icon.MouseClick += (_, e) => { if (e.Button == Forms.MouseButtons.Left) openChat(); };
+    }
+
+    private string? _updateUrl;
+
+    /// <summary>Asks GitHub for a newer release; a balloon says so (click it to open the download page).</summary>
+    public async Task CheckForUpdatesAsync(bool quietIfNone)
+    {
+        try
+        {
+            var newer = await UpdateChecker.NewerReleaseAsync();
+            _settings.LastUpdateCheck = DateTime.Now;
+            try { _settings.Save(); } catch { }
+            if (newer != null)
+            {
+                _updateUrl = newer.Url;
+                ShowBalloon($"Miri {newer.Version} is out!", $"You have {UpdateChecker.Current.ToString(3)}. Click here to open the download page, meow.");
+            }
+            else if (!quietIfNone) { _updateUrl = null; ShowBalloon("Miri is up to date", $"Version {UpdateChecker.Current.ToString(3)} is the newest, meow."); }
+        }
+        catch (Exception ex)
+        {
+            AppShell.Log("Update check failed: " + ex.Message);
+            if (!quietIfNone) ShowBalloon("Couldn't check for updates", "Is the internet on? Try again later.");
+        }
+    }
+
+    private void OpenUpdatePage()
+    {
+        var url = _updateUrl;
+        if (url == null || !url.StartsWith($"https://github.com/{UpdateChecker.Repo}/", StringComparison.OrdinalIgnoreCase)) return;   // only ever our own release page
+        try { Process.Start(new ProcessStartInfo(url) { UseShellExecute = true }); } catch { }
     }
 
     public void ShowBalloon(string title, string text)
