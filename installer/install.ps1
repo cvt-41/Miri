@@ -51,8 +51,20 @@ $ollama = (Get-Command ollama -ErrorAction SilentlyContinue).Source
 if (-not $ollama) { $p = Join-Path $env:LOCALAPPDATA 'Programs\Ollama\ollama.exe'; if (Test-Path $p) { $ollama = $p } }
 if (-not $ollama) {
     Write-Host "`nMiri needs Ollama to think. It is not installed."
-    if ((Read-Host "Install Ollama now with winget? (y/n)") -eq 'y') {
-        winget install --id Ollama.Ollama -e
+    if ((Read-Host "Install Ollama now? (y/n)") -eq 'y') {
+        if (Get-Command winget -ErrorAction SilentlyContinue) { winget install --id Ollama.Ollama -e }
+        else {
+            # no winget (older or stripped-down Windows): official installer from ollama.com, shown to the user as normal
+            Write-Host "Downloading the Ollama installer from ollama.com (about 2 GB)..."
+            [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
+            $setup = Join-Path $env:TEMP 'OllamaSetup.exe'
+            try {
+                $ProgressPreference = 'SilentlyContinue'   # the progress bar makes Invoke-WebRequest very slow on PowerShell 5.1
+                Invoke-WebRequest 'https://ollama.com/download/OllamaSetup.exe' -OutFile $setup -UseBasicParsing
+                Start-Process $setup -Wait
+            } catch { Write-Host "Download failed: $($_.Exception.Message)" }
+            finally { Remove-Item $setup -ErrorAction SilentlyContinue }
+        }
         $p = Join-Path $env:LOCALAPPDATA 'Programs\Ollama\ollama.exe'; if (Test-Path $p) { $ollama = $p }
     }
     if (-not $ollama) { Write-Host "Get Ollama from https://ollama.com/download, then run this installer again to fetch the models." }
