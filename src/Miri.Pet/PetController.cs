@@ -273,9 +273,9 @@ public sealed class PetController
 
         if (_tugTicks > 0)
         {
-            // caught it: reel the pointer in towards her, from whatever side it is on, until it is close
+            // caught it: reel the pointer in to her center, from whatever side it is on
             _tugTicks--;
-            var to = ClosestOnBody(cursor) - cursor;
+            var to = Center(Bounds) - cursor;
             if (to.Length <= Size * HugReach) { _tugTicks = 0; return; }
             to *= Math.Min(6, to.Length - Size * HugReach) / to.Length;
             double k = ScreenMetrics.Scale;
@@ -313,17 +313,13 @@ public sealed class PetController
     }
 
     private double _nudgeAt, _nextHug;
-    private const double HugReach = 0.3;   // "near" = within 30% of her size from any edge of her body
+    private bool _faceLeft;
+    private const double HugReach = 0.15;   // hug only with the pointer at her center (Hug frames draw it in her arms there)
 
-    /// <summary>Is the pointer within hugging distance of her body, from any direction?</summary>
-    public static bool IsNear(Point cursor, Rect body, double size)
-    {
-        double dx = Math.Max(Math.Max(body.Left - cursor.X, 0), cursor.X - body.Right);
-        double dy = Math.Max(Math.Max(body.Top - cursor.Y, 0), cursor.Y - body.Bottom);
-        return Math.Sqrt(dx * dx + dy * dy) <= size * HugReach;
-    }
+    private static Point Center(Rect body) => new(body.Left + body.Width / 2, body.Top + body.Height / 2);
 
-    private Point ClosestOnBody(Point p) => new(Math.Clamp(p.X, Bounds.Left, Bounds.Right), Math.Clamp(p.Y, Bounds.Top, Bounds.Bottom));
+    /// <summary>Is the pointer at the center of her body, where the Hug frames hold it?</summary>
+    public static bool IsNear(Point cursor, Rect body, double size) => (cursor - Center(body)).Length <= size * HugReach;
 
     /// <summary>Highest edge a cat could stand on to reach a pointer at <paramref name="cursor"/>: just below it, not far below.</summary>
     public static double? EdgeUnder(Point cursor, IEnumerable<Floor> floors, double size) =>
@@ -406,6 +402,13 @@ public sealed class PetController
         var cursor = ScreenMetrics.CursorDip();
         if (Playing) PlayStep(dt, now, cursor, idle);
         var (anim, mirrored) = _b.Tick(dt, _floors.Floors, _floors.WorkArea == default ? ScreenMetrics.WorkAreaDip() : _floors.WorkArea, idle, cursor);
+        if (Playing && !_b.Riding && anim is not (PetAnimation.Walk or PetAnimation.Jump or PetAnimation.Fall or PetAnimation.Crouch))
+        {
+            // face the pointer (frames face right); dead zone at her middle so a hug doesn't flicker left/right
+            double dx = cursor.X - _b.CenterX;
+            if (Math.Abs(dx) > Size * HugReach) _faceLeft = dx < 0;
+            mirrored = _faceLeft;
+        }
 
         Animate(anim, mirrored, dt);
         PublishPosition();
