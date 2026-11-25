@@ -8,6 +8,7 @@
     <StartupObject>Miri.App.Program</StartupObject>
     <!-- release tags on GitHub ("v0.3.0") are compared with this for "Check for updates" -->
     <Version>0.3.0</Version>
+    <ApplicationIcon>miri.ico</ApplicationIcon>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <ApplicationManifest>app.manifest</ApplicationManifest>

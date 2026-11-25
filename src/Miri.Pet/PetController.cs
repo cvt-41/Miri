@@ -105,7 +105,8 @@ public sealed class PetController
     {
         var work = ScreenMetrics.WorkAreaDip();
         _b.X = work.Right - Size - 220;
-        _b.FeetY = work.Bottom - Size * 2;   // drop in from a little above the taskbar
+        _b.FeetY = work.Bottom;               // on the taskbar's top edge...
+        _b.Play(PetAnimation.Climb, 1.25);    // ...climbing up from behind it (drawn in place, ears first)
         _sw.Start();
         _lastTick = 0;
         _timer.Start();

@@ -29,8 +29,8 @@ She never touches password fields or password managers, and never types anything
 
 ## Install (on any Windows 10/11 PC)
 
-1. Get `Miri-Setup.zip` (see *Build* below) and extract **the whole zip**.
-2. Double-click **Install.cmd**. No admin rights are needed.
+1. Download **Miri-Setup.exe** (or `Miri-Setup.zip`, then extract the whole zip and run **Install.cmd**).
+2. Run it. No admin rights are needed. It asks whether Miri should start with Windows (change it later: tray → **Start with Windows**).
 3. Say yes when it offers to install Ollama and download her models (`qwen3.5:4b`, `gemma4:e4b`, several GB).
 
 You need 64-bit Windows, about 8 GB RAM and about 10 GB of free disk space. To remove her: Settings → Apps → Miri, or Start → Miri → Uninstall Miri.
@@ -41,7 +41,7 @@ Requires the [.NET 9 SDK](https://dotnet.microsoft.com/download).
 
 ```powershell
 dotnet run --project src/Miri.App          # run from source
-powershell -File installer/build.ps1       # make dist/Miri-Setup.zip
+powershell -File installer/build.ps1       # make dist/Miri-Setup.exe and dist/Miri-Setup.zip
 ```
 
 Code layout: `Miri.Pet` (sprite, physics, perching), `Miri.Brain` (Ollama chat, routing, weather, memory), `Miri.Hands` (UI Automation: reading and clicking apps, safety rules), `Miri.App` (WPF windows, tray, wiring). More detail in [PLAN.md](PLAN.md) and [docs/SPEC.md](docs/SPEC.md).

@@ -3,7 +3,7 @@ using System.Windows.Media.Imaging;
 
 namespace Miri.Pet;
 
-public enum PetAnimation { Sit, Walk, Sleep, Think, Talk, Happy, Confused, Point, Crouch, Jump, Fall, ReachUp, ReachDown, Purr, Eat, Smug, Sad, Hug, Nudge, Tug, PullDot }
+public enum PetAnimation { Sit, Walk, Sleep, Think, Talk, Happy, Confused, Point, Crouch, Jump, Fall, ReachUp, ReachDown, Purr, Eat, Smug, Sad, Hug, Nudge, Tug, PullDot, Climb }
 
 /// <summary>One frame: a frozen 32x32 bitmap plus its raw BGRA pixels (for hit testing).</summary>
 public sealed class SpriteFrame

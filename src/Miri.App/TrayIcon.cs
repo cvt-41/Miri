@@ -51,13 +51,15 @@ internal sealed class TrayIcon : IDisposable
             try { _settings.Save(); } catch { }
         };
         var pick = new Forms.ToolStripMenuItem("Choose models…", null, (_, _) => new ModelSetupWindow(_settings, brain).Show());
+        var startup = new Forms.ToolStripMenuItem("Start with Windows") { Checked = StartsWithWindows, CheckOnClick = true };
+        startup.CheckedChanged += (_, _) => SetStartWithWindows(startup.Checked);
         var updates = new Forms.ToolStripMenuItem("Check for updates…", null, async (_, _) => await CheckForUpdatesAsync(quietIfNone: false));
         var data = new Forms.ToolStripMenuItem("Open data folder", null, (_, _) => OpenDataFolder());
         var exit = new Forms.ToolStripMenuItem("Quit", null, (_, _) => quit());
 
         menu.Items.AddRange(new Forms.ToolStripItem[]
         {
-            talk, feed, play, new Forms.ToolStripSeparator(), _modelMenu, _pauseItem, tease, loc, pick, updates, data, new Forms.ToolStripSeparator(), exit,
+            talk, feed, play, new Forms.ToolStripSeparator(), _modelMenu, _pauseItem, tease, loc, startup, pick, updates, data, new Forms.ToolStripSeparator(), exit,
         });
 
         _icon = new Forms.NotifyIcon
@@ -69,6 +71,25 @@ internal sealed class TrayIcon : IDisposable
         };
         _icon.BalloonTipClicked += (_, _) => OpenUpdatePage();
         _icon.MouseClick += (_, e) => { if (e.Button == Forms.MouseButtons.Left) openChat(); };
+    }
+
+    private const string RunKey = @"Software\Microsoft\Windows\CurrentVersion\Run";
+
+    /// <summary>Per-user autostart entry (HKCU Run): no admin needed, removed by the uninstaller.</summary>
+    private static bool StartsWithWindows
+    {
+        get { try { using var k = Microsoft.Win32.Registry.CurrentUser.OpenSubKey(RunKey); return k?.GetValue("Miri") != null; } catch { return false; } }
+    }
+
+    private static void SetStartWithWindows(bool on)
+    {
+        try
+        {
+            using var k = Microsoft.Win32.Registry.CurrentUser.CreateSubKey(RunKey);
+            if (on) k.SetValue("Miri", $"\"{Environment.ProcessPath}\"");
+            else k.DeleteValue("Miri", throwOnMissingValue: false);
+        }
+        catch (Exception ex) { AppShell.Log("Start with Windows: " + ex.Message); }
     }
 
     private string? _updateUrl;

@@ -11,7 +11,7 @@ Miri - free, open-source desktop kitten (MIT License).
 When you ask, Miri clicks and types in your apps for you. She asks before risky
 steps, but she can make mistakes: check her work. Miri is provided "AS IS",
 without warranty of any kind (see LICENSE). Privacy: everything stays on this PC
-except weather lookups (see PRIVACY.md).
+except weather lookups and a daily update check (see PRIVACY.md).
 
 "@
 if ((Read-Host "Continue and install? (y/n)") -ne 'y') { Write-Host "Cancelled."; exit 1 }
@@ -34,6 +34,9 @@ New-Item -ItemType Directory -Force $menu | Out-Null
 New-Shortcut (Join-Path $menu 'Miri.lnk') $exe
 New-Shortcut (Join-Path $menu 'Uninstall Miri.lnk') 'powershell.exe' "-NoProfile -ExecutionPolicy Bypass -File `"$dest\uninstall.ps1`""
 New-Shortcut (Join-Path ([Environment]::GetFolderPath('Desktop')) 'Miri.lnk') $exe
+$run = 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Run'
+if ((Read-Host "Start Miri when Windows starts? (y/n)") -eq 'y') { Set-ItemProperty $run Miri "`"$exe`"" }
+else { Remove-ItemProperty $run Miri -ErrorAction SilentlyContinue }   # change any time: tray > Start with Windows
 
 # Settings > Apps entry
 $key = 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Uninstall\Miri'

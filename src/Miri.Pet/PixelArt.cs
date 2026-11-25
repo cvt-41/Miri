@@ -486,6 +486,10 @@ internal static class PixelArt
             new("Hug", new[] { 300, 300 }, new() { HugFrame(0).Pixels(), HugFrame(1).Pixels() }),
             new("Nudge", new[] { 220, 220 }, new() { NudgeFrame(0).Pixels(), NudgeFrame(1).Pixels() }),
             new("Tug", new[] { 200, 200 }, new() { TugFrame(0).Pixels(), TugFrame(1).Pixels() }),
+            new("Climb", new[] { 260, 220, 220, 220, 260 }, new()
+            {
+                ClimbFrame(25).Pixels(), ClimbFrame(19).Pixels(), ClimbFrame(12).Pixels(), ClimbFrame(5).Pixels(), ClimbFrame(0).Pixels(),
+            }),
             new("PullDot", new[] { 220, 220 }, new() { TugFrame(0, SeekDot).Pixels(), TugFrame(1, SeekDot).Pixels() }),
         };
         return list;
@@ -773,6 +777,20 @@ internal static class PixelArt
         c.Stamp(PawGrip, 19 - f, 17);
         c.Stamp(PawGrip, 19 - f, 20);
         if (toy != null) c.Stamp(toy, 25 - f, 18);   // held in front of her paws
+        return c;
+    }
+
+    // Climbing up from below the taskbar: row 31 is the taskbar's top edge; she rises from behind it, paws hooked on the edge.
+    private static Canvas ClimbFrame(int below)
+    {
+        var c = new Canvas();
+        var sit = SitFrame(s => { if (below <= 8) s.Stamp(EyesNarrow, 8, 9); });   // round eyes peeking, then pleased
+        c.StampCanvas(sit, 0, below);                    // anything pushed past row 31 is hidden "behind" the taskbar
+        if (below > 0)
+        {
+            c.Stamp(PawBlob, 6, 28);                     // both front paws gripping the edge
+            c.Stamp(PawBlob, 16, 28);
+        }
         return c;
     }
 

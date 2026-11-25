@@ -1,4 +1,4 @@
-using System.Globalization;
+﻿using System.Globalization;
 using System.Net.Http;
 using System.Text.Json;
 using System.Text.RegularExpressions;
@@ -24,7 +24,7 @@ internal sealed class Weather
         RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
     private static readonly Regex NotWeather = new(@"^\s*(play|open|bật|mở|phát)(?![\p{L}])", RegexOptions.IgnoreCase);
     private static readonly Regex City = new(
-        @"(?:\b(?:in|at|for)|(?<![\p{L}])(?:ở|tại))\s+([\p{L}][\p{L}\p{M} .'-]{1,40}?)\s*(?:today|tomorrow|right now|now|hôm nay|ngày mai|bây giờ|thế nào|ra sao|không|nhé|vậy)?\s*[?!.]*$",
+        @"(?:\b(?:in|at|for)|(?<![\p{L}])(?:ở|tại))\s+([\p{L}][\p{L}\p{M} .'-]{1,40}?)(?:\s+(?:today|tonight|tomorrow|right now|now|this week|hôm nay|tối nay|sáng nay|nay|ngày mai|mai|bây giờ|lúc này|thế nào|như thế nào|ra sao|có mưa không|không|nhé|nha|vậy|ạ))*\s*[?!.]*$",
         RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
 
     public static bool IsWeatherQuestion(string text) => Ask.IsMatch(text) && !NotWeather.IsMatch(text);
@@ -41,14 +41,25 @@ internal sealed class Weather
     {
         string? place = CityIn(text);
         (double Lat, double Lon)? at = null;
-        if (place != null) (at, place) = await GeocodeAsync(place, lang, ct);
+        if (place != null)
+        {
+            (at, place) = await GeocodeAsync(place, lang, ct);
+            if (at != null && _settings.WeatherCity.Length == 0 && place != null)
+            {
+                _settings.WeatherCity = place;   // first city named becomes "my city": plain "weather today?" works next time
+                try { _settings.Save(); } catch { }
+            }
+        }
         else if (_settings.WeatherUseLocation && await DeviceLocationAsync(ct) is { } here) at = here;
         else if (_settings.WeatherCity.Length > 0) (at, place) = await GeocodeAsync(_settings.WeatherCity, lang, ct);
 
+        if (at is null && place != null)
+            return L(lang, $"I couldn't find a place called \"{place}\", meow. Try its full name, like \"Ho Chi Minh City\".",
+                           $"Miri không tìm thấy nơi nào tên \"{place}\" hết, meo. Bạn thử tên đầy đủ nha, như \"Thành phố Hồ Chí Minh\".");
         if (at is not { } p)
             return L(lang,
-                "I don't know where you are, meow. Name a city (\"weather in Hanoi\"), turn on Windows location for desktop apps, or set \"WeatherCity\" in my settings.",
-                "Miri chưa biết bạn ở đâu, meo. Bạn nói tên thành phố (\"thời tiết ở Hà Nội\"), bật Vị trí cho ứng dụng máy tính trong Windows, hoặc đặt \"WeatherCity\" trong cài đặt nhé.");
+                "Which city are you in, meow? Tell me once (\"weather in Hanoi\") and I'll remember it. Or turn on Windows location (Settings > Privacy > Location).",
+                "Bạn đang ở thành phố nào nè? Nói Miri một lần thôi (\"thời tiết ở Hà Nội\"), Miri sẽ nhớ luôn nha. Hoặc bật Vị trí trong Cài đặt > Quyền riêng tư > Vị trí.");
 
         var url = string.Format(CultureInfo.InvariantCulture,
             "https://api.open-meteo.com/v1/forecast?latitude={0:0.0}&longitude={1:0.0}&current=temperature_2m,apparent_temperature,weather_code&daily=temperature_2m_max,temperature_2m_min,precipitation_probability_max&timezone=auto&forecast_days=1",
@@ -70,9 +81,17 @@ internal sealed class Weather
 
     private static async Task<((double, double)?, string?)> GeocodeAsync(string name, Lang lang, CancellationToken ct)
     {
+        var words = name.Split(' ', StringSplitOptions.RemoveEmptyEntries).ToList();
+        for (; words.Count > 0; words.RemoveAt(words.Count - 1))
+            if (await GeocodeOnceAsync(string.Join(' ', words), lang, ct) is { } hit) return hit;
+        return (null, name);
+    }
+
+    private static async Task<((double, double)?, string?)?> GeocodeOnceAsync(string name, Lang lang, CancellationToken ct)
+    {
         var url = $"https://geocoding-api.open-meteo.com/v1/search?count=1&language={(lang == Lang.Vietnamese ? "vi" : "en")}&name={Uri.EscapeDataString(name)}";
         using var doc = JsonDocument.Parse(await Http.GetStringAsync(url, ct));
-        if (!doc.RootElement.TryGetProperty("results", out var r) || r.GetArrayLength() == 0) return (null, name);
+        if (!doc.RootElement.TryGetProperty("results", out var r) || r.GetArrayLength() == 0) return null;
         var x = r[0];
         return ((x.GetProperty("latitude").GetDouble(), x.GetProperty("longitude").GetDouble()), x.GetProperty("name").GetString());
     }
