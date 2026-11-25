@@ -28,7 +28,7 @@ Set-Content (Join-Path $pack 'setup.cmd') -Encoding ascii -Value @'
 title Miri setup
 powershell -NoProfile -ExecutionPolicy Bypass -Command "Expand-Archive -Force '%~dp0Miri.zip' '%~dp0'"
 powershell -NoProfile -ExecutionPolicy Bypass -File "%~dp0install.ps1"
-pause
+if not defined MIRI_UPDATE pause
 '@
 $exe = Join-Path $dist 'Miri-Setup.exe'
 Remove-Item $exe -ErrorAction SilentlyContinue

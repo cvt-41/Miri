@@ -14,7 +14,8 @@ without warranty of any kind (see LICENSE). Privacy: everything stays on this PC
 except weather lookups and a daily update check (see PRIVACY.md).
 
 "@
-if ((Read-Host "Continue and install? (y/n)") -ne 'y') { Write-Host "Cancelled."; exit 1 }
+$update = $env:MIRI_UPDATE -eq '1'   # started by Miri's built-in updater: the user already said yes, keep their choices
+if (-not $update -and (Read-Host "Continue and install? (y/n)") -ne 'y') { Write-Host "Cancelled."; exit 1 }
 Write-Host "Installing Miri to $dest ..."
 Get-Process Miri.App -ErrorAction SilentlyContinue | Stop-Process -Force
 Start-Sleep -Milliseconds 500
@@ -35,7 +36,8 @@ New-Shortcut (Join-Path $menu 'Miri.lnk') $exe
 New-Shortcut (Join-Path $menu 'Uninstall Miri.lnk') 'powershell.exe' "-NoProfile -ExecutionPolicy Bypass -File `"$dest\uninstall.ps1`""
 New-Shortcut (Join-Path ([Environment]::GetFolderPath('Desktop')) 'Miri.lnk') $exe
 $run = 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Run'
-if ((Read-Host "Start Miri when Windows starts? (y/n)") -eq 'y') { Set-ItemProperty $run Miri "`"$exe`"" }
+if ($update) { }   # keep Start with Windows as it was
+elseif ((Read-Host "Start Miri when Windows starts? (y/n)") -eq 'y') { Set-ItemProperty $run Miri "`"$exe`"" }
 else { Remove-ItemProperty $run Miri -ErrorAction SilentlyContinue }   # change any time: tray > Start with Windows
 
 # Settings > Apps entry
@@ -50,8 +52,8 @@ Set-ItemProperty $key NoModify 1 -Type DWord
 Set-ItemProperty $key NoRepair 1 -Type DWord
 
 # ---- Ollama (Miri's brain runs locally through it). Never let a failure here stop Miri from starting.
-try {
-$ollama = (Get-Command ollama -ErrorAction SilentlyContinue).Source
+if (-not $update) { try {   # an update leaves Ollama and the models alone
+$ollama =(Get-Command ollama -ErrorAction SilentlyContinue).Source
 if (-not $ollama) { $p = Join-Path $env:LOCALAPPDATA 'Programs\Ollama\ollama.exe'; if (Test-Path $p) { $ollama = $p } }
 if (-not $ollama) {
     Write-Host "`nMiri needs Ollama to think. It is not installed."
@@ -88,7 +90,7 @@ if ($ollama) {
     }
 }
 
-} catch { Write-Host "Ollama/model setup hit a problem: $($_.Exception.Message)`nMiri will still start; she can download models herself (tray > Choose models...)." }
+} catch { Write-Host "Ollama/model setup hit a problem: $($_.Exception.Message)`nMiri will still start; she can download models herself (tray > Choose models...)." } }
 
 Write-Host "`nDone. Starting Miri..."
 Start-Process $exe -WorkingDirectory $dest

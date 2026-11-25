@@ -1,4 +1,5 @@
 ﻿using System.Diagnostics;
+using System.IO;
 using Miri.Core;
 using Miri.Pet;
 using Forms = System.Windows.Forms;
@@ -24,6 +25,7 @@ internal sealed class TrayIcon : IDisposable
         _settings = settings;
         _pet = pet;
         _brain = brain;
+        _quit = quit;
 
         (_image, _hIcon) = MakeIcon(sheet[PetAnimation.Sit].Frames[0]);
 
@@ -69,7 +71,7 @@ internal sealed class TrayIcon : IDisposable
             ContextMenuStrip = menu,
             Visible = true,
         };
-        _icon.BalloonTipClicked += (_, _) => OpenUpdatePage();
+        _icon.BalloonTipClicked += async (_, _) => await UpdateClickedAsync();
         _icon.MouseClick += (_, e) => { if (e.Button == Forms.MouseButtons.Left) openChat(); };
     }
 
@@ -92,7 +94,9 @@ internal sealed class TrayIcon : IDisposable
         catch (Exception ex) { AppShell.Log("Start with Windows: " + ex.Message); }
     }
 
-    private string? _updateUrl;
+    private UpdateChecker.Release? _update;
+    private readonly Action _quit;
+    private bool _installing;
 
     /// <summary>Asks GitHub for a newer release; a balloon says so (click it to open the download page).</summary>
     public async Task CheckForUpdatesAsync(bool quietIfNone)
@@ -104,10 +108,11 @@ internal sealed class TrayIcon : IDisposable
             try { _settings.Save(); } catch { }
             if (newer != null)
             {
-                _updateUrl = newer.Url;
-                ShowBalloon($"Miri {newer.Version} is out!", $"You have {UpdateChecker.Current.ToString(3)}. Click here to open the download page, meow.");
+                _update = newer;
+                ShowBalloon($"Miri {newer.Version} is out!", $"You have {UpdateChecker.Current.ToString(3)}. Click here to " +
+                    (newer.SetupUrl != null ? "update, meow." : "open the download page, meow."));
             }
-            else if (!quietIfNone) { _updateUrl = null; ShowBalloon("Miri is up to date", $"Version {UpdateChecker.Current.ToString(3)} is the newest, meow."); }
+            else if (!quietIfNone) { _update = null; ShowBalloon("Miri is up to date", $"Version {UpdateChecker.Current.ToString(3)} is the newest, meow."); }
         }
         catch (Exception ex)
         {
@@ -116,9 +121,36 @@ internal sealed class TrayIcon : IDisposable
         }
     }
 
+    /// <summary>Balloon clicked: with the user's OK, download the release's Miri-Setup.exe and run it in update mode.</summary>
+    private async Task UpdateClickedAsync()
+    {
+        if (_update is not { } u || _installing) return;
+        if (u.SetupUrl == null) { OpenUpdatePage(); return; }   // release without an installer attached
+        var ok = Forms.MessageBox.Show($"Update Miri to {u.Version} now?\n\nMiri downloads the installer from GitHub (about 80 MB), closes, and comes back updated. " +
+            "Your chats and settings are kept.", "Update Miri", Forms.MessageBoxButtons.YesNo, Forms.MessageBoxIcon.Question);
+        if (ok != Forms.DialogResult.Yes) return;
+        _installing = true;
+        try
+        {
+            ShowBalloon("Downloading the update…", "Miri will restart by herself when it's ready, meow.");
+            var setup = await UpdateChecker.DownloadSetupAsync(u);
+            var psi = new ProcessStartInfo(setup) { UseShellExecute = false, WorkingDirectory = Path.GetTempPath() };
+            psi.Environment["MIRI_UPDATE"] = "1";   // install.ps1: no questions, keeps Start with Windows and models as they are
+            Process.Start(psi);
+            _quit();
+        }
+        catch (Exception ex)
+        {
+            AppShell.Log("Update failed: " + ex.Message);
+            ShowBalloon("Update failed", "Opening the download page instead, meow.");
+            OpenUpdatePage();
+        }
+        finally { _installing = false; }
+    }
+
     private void OpenUpdatePage()
     {
-        var url = _updateUrl;
+        var url = _update?.Url;
         if (url == null || !url.StartsWith($"https://github.com/{UpdateChecker.Repo}/", StringComparison.OrdinalIgnoreCase)) return;   // only ever our own release page
         try { Process.Start(new ProcessStartInfo(url) { UseShellExecute = true }); } catch { }
     }

@@ -23,7 +23,7 @@ Like any web request, this shows Open-Meteo your IP address. See [Open-Meteo's t
 
 ## Update check
 
-Once a day when Miri starts (and when you click tray → **Check for updates…**), she reads the public list of Miri releases on GitHub (`api.github.com`). Nothing about you is sent beyond what any web request carries (your IP address, seen by GitHub; see [GitHub's privacy statement](https://docs.github.com/site-policy/privacy-policies/github-general-privacy-statement)). She never downloads or installs anything by herself. Turn the daily check off by setting `"CheckForUpdates": false` in settings.
+Once a day when Miri starts (and when you click tray → **Check for updates…**), she reads the public list of Miri releases on GitHub (`api.github.com`). Nothing about you is sent beyond what any web request carries (your IP address, seen by GitHub; see [GitHub's privacy statement](https://docs.github.com/site-policy/privacy-policies/github-general-privacy-statement)). She downloads and runs an update (the release's `Miri-Setup.exe`, from `github.com/cvt-41/Miri` only) only after you click the update notice and say yes. Turn the daily check off by setting `"CheckForUpdates": false` in settings.
 
 ## Third-party software you install yourself
 
