@@ -8,6 +8,9 @@ namespace Miri.App;
 
 public partial class App : System.Windows.Application
 {
+    /// <summary>Optional hook for local, uncommitted extensions; compiles to nothing without one.</summary>
+    partial void AddLocalExtras();
+
     private Mutex? _mutex;
     private PetWindow? _petWindow;
     private BubbleWindow? _bubble;
@@ -109,6 +112,7 @@ public partial class App : System.Windows.Application
         var shell = _shell;
         _mischief = new Mischief(settings, pet, () => shell.IsBusy || shell.BubbleOpen);
         _mischief.Start();
+        AddLocalExtras();
         if (!settings.ModelSetupDone) { Step("model picker"); new ModelSetupWindow(settings, () => shell.Brain).Show(); }
         Step("ready");
         if (settings.CheckForUpdates && DateTime.Now - settings.LastUpdateCheck > TimeSpan.FromDays(1))

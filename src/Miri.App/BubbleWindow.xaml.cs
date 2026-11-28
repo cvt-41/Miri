@@ -167,6 +167,14 @@ public partial class BubbleWindow : Window
         UpdateReplyAutomation();
     }
 
+    /// <summary>Empties the message log.</summary>
+    public void ClearReply()
+    {
+        ReplyText.Inlines.Clear();
+        _replyRun = null;
+        UpdateReplyAutomation();
+    }
+
     /// <summary>A side note from Miri herself (stop notices, errors).</summary>
     public void AppendNote(string text)
     {

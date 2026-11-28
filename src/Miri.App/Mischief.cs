@@ -11,7 +11,7 @@ namespace Miri.App;
 /// at the tab strip and Ctrl+Tabs to the next tab; elsewhere she paws at another app's taskbar button and brings it
 /// forward. Then she looks smug. Never types text, clicks content, closes or minimizes anything, or opens the bubble.
 /// </summary>
-public sealed class Mischief
+public sealed partial class Mischief
 {
     public const uint MinIdleMs = 4000;               // not while you're typing / moving the mouse...
     public const uint MaxIdleMs = 10 * 60 * 1000;     // ...but you're there to see it
@@ -42,6 +42,10 @@ public sealed class Mischief
 
     public void Start() => _timer.Start();
 
+    // Optional hooks for local, uncommitted extensions; without an implementation they compile to nothing.
+    partial void SkipGates(ref bool skip);
+    partial void ChooseMedia(Tease.Window? media, long started, ref bool goMedia, ref bool stop);
+
 
     /// <summary>The pure part of the safety gate (the foreground-window checks live in <see cref="Tease"/>).</summary>
     public static bool MayTease(bool enabled, long nowMs, long nextAtMs, bool petFree, bool uiBusy, uint idleMs, bool mouseDown) =>
@@ -53,8 +57,10 @@ public sealed class Mischief
 
     private async Task TickAsync()
     {
-        if (_teasing || !MayTease(_settings.Mischief, Environment.TickCount64, _nextAtMs, PetFree, _uiBusy(),
-                                  PetController.IdleMilliseconds(), Tease.AnyMouseButtonDown()))
+        bool skip = false;
+        SkipGates(ref skip);
+        if (_teasing || (!skip && !MayTease(_settings.Mischief, Environment.TickCount64, _nextAtMs, PetFree, _uiBusy(),
+                                              PetController.IdleMilliseconds(), Tease.AnyMouseButtonDown())))
             return;
         if (Tease.Foreground(_ownPid) is not { } fg) return;   // not a normal app window / fullscreen / elevated: try later
 
@@ -64,7 +70,10 @@ public sealed class Mischief
             long started = Environment.TickCount64;
             // a player is open (in front or not): half the time she goes for its progress bar instead
             var media = Tease.IsMedia(fg) ? fg : Tease.FindMediaWindow(fg.Hwnd, _ownPid);
-            if (media != null && _rng.NextDouble() < 0.5)
+            bool goMedia = media != null && _rng.NextDouble() < 0.5, stop = false;
+            ChooseMedia(media, started, ref goMedia, ref stop);
+            if (stop) return;
+            if (goMedia && media != null)
             {
                 _nextAtMs = started + Minutes(15, 40);   // one try per slot, whatever happens next
                 if (!await BringForwardAsync(fg, media, started)) return;
@@ -92,13 +101,10 @@ public sealed class Mischief
             if (!await ReachAsync(reach)) return;
 
             // nothing changed while she went over: still allowed, no input since we started, same window in front
-            bool still = _settings.Mischief && !_pet.Paused && !_pet.IsDragging && !_uiBusy() && !Tease.AnyMouseButtonDown() &&
-                         PetController.IdleMilliseconds() >= Environment.TickCount64 - started &&
-                         Tease.Foreground(_ownPid)?.Hwnd == fg.Hwnd;
-            if (!still) return;
+            if (!StillOk(fg, started)) return;
 
             bool ok = browser ? Tease.NextTab(fg.Hwnd) : Tease.SwitchTo(to!.Hwnd);
-            if (ok) _pet.Play(PetAnimation.Smug, 2.5);
+            if (ok) { _pet.Play(PetAnimation.Smug, 2.5); _pet.OfferCheeks(); }   // caught her? pinch those cheeks
             Tease.Log((browser
                 ? $"Mischief: Ctrl+Tab in \"{fg.Title}\" ({fg.Process})"
                 : $"Mischief: switched from {fg.Process} to \"{to!.Title}\" ({to.Process})") + (ok ? "" : " - didn't work"));
@@ -117,10 +123,7 @@ public sealed class Mischief
         var btn = await Task.Run(() => Tease.TaskbarButton(media));
         var reach = btn.IsEmpty ? new Drawing.Rectangle(media.Bounds.X + media.Bounds.Width / 2 - 60, media.Bounds.Y, 120, 30) : btn;
         if (!await ReachAsync(reach)) return false;
-        bool still = _settings.Mischief && !_pet.Paused && !_pet.IsDragging && !_uiBusy() && !Tease.AnyMouseButtonDown() &&
-                     PetController.IdleMilliseconds() >= Environment.TickCount64 - started &&
-                     Tease.Foreground(_ownPid)?.Hwnd == fg.Hwnd;
-        if (!still || !Tease.SwitchTo(media.Hwnd)) return false;
+        if (!StillOk(fg, started) || !Tease.SwitchTo(media.Hwnd)) return false;
         await Task.Delay(700);   // let it come forward and draw
         return Tease.Foreground(_ownPid)?.Hwnd == media.Hwnd;
     }
@@ -134,10 +137,7 @@ public sealed class Mischief
         _nextAtMs = started + Minutes(15, 40);
         var dot = await Task.Run(bar.Dot);
         if (!await ReachAsync(new Drawing.Rectangle(dot.X - 4, dot.Y - 4, 8, 8), jumpLeftOf: true)) return;
-        bool still = _settings.Mischief && !_pet.Paused && !_pet.IsDragging && !_uiBusy() && !Tease.AnyMouseButtonDown() &&
-                     PetController.IdleMilliseconds() >= Environment.TickCount64 - started &&
-                     Tease.Foreground(_ownPid)?.Hwnd == fg.Hwnd;
-        if (!still) return;
+        if (!StillOk(fg, started)) return;
 
         _pet.HoldPose(PetAnimation.PullDot, 2.3);   // on the bar, gripping the dot; drops down after
         bool pulled = await Task.Run(bar.PullBack);
@@ -148,7 +148,19 @@ public sealed class Mischief
             if (!restored) await Task.Run(bar.Restore);   // one retry: never leave the song rewound
         }
         _pet.Play(PetAnimation.Smug, 2.5);
+        if (pulled) _pet.OfferCheeks();
         Tease.Log($"Mischief: tugged the progress bar back a moment in \"{fg.Title}\" ({fg.Process})" + (pulled ? "" : " - didn't work"));
+    }
+
+    /// <summary>Nothing changed while she went over: still allowed, no input since we started, same window in front.
+    /// A dev test run skips the "still allowed / no input" part (you just clicked the tray).</summary>
+    private bool StillOk(Tease.Window fg, long started)
+    {
+        bool skip = false;
+        SkipGates(ref skip);
+        return (skip || (_settings.Mischief && !_uiBusy() && !Tease.AnyMouseButtonDown() &&
+                         PetController.IdleMilliseconds() >= Environment.TickCount64 - started)) &&
+               !_pet.Paused && !_pet.IsDragging && Tease.Foreground(_ownPid)?.Hwnd == fg.Hwnd;
     }
 
     /// <summary>True when she reached it (or after 4 s); false if she was picked up.</summary>

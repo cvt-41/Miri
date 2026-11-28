@@ -8,7 +8,7 @@ using Drawing = System.Drawing;
 namespace Miri.App;
 
 /// <summary>Notification-area icon: Talk, Feed, Model ▸, Pause/Resume pet, Let Miri tease me, Open data folder, Quit.</summary>
-internal sealed class TrayIcon : IDisposable
+internal sealed partial class TrayIcon : IDisposable
 {
     private readonly Forms.NotifyIcon _icon;
     private readonly Forms.ToolStripMenuItem _modelMenu;

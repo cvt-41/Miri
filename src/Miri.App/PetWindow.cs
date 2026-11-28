@@ -19,7 +19,7 @@ public sealed class PetWindow : Window
     private readonly PetView _view;
     private readonly DispatcherTimer _topmostTimer;
     private bool _mouseDown;
-    private bool _dragging;
+    private bool _dragging, _pinching;
     private WpfPoint _downCursor;
     private readonly StrokeDetector _strokes = new();
 
@@ -139,11 +139,21 @@ public sealed class PetWindow : Window
                 _pet.Pet();
             return;
         }
-        if (!_dragging && (Math.Abs(c.X - _downCursor.X) > 4 || Math.Abs(c.Y - _downCursor.Y) > 4))
+        if (!_dragging && !_pinching && (Math.Abs(c.X - _downCursor.X) > 4 || Math.Abs(c.Y - _downCursor.Y) > 4))
         {
-            _dragging = true;
-            _pet.BeginDrag(_downCursor);
+            // right after a tease, pulling sideways on her face pinches her cheek instead of picking her up
+            if (Math.Abs(c.X - _downCursor.X) > Math.Abs(c.Y - _downCursor.Y) && _pet.CanPinch(_downCursor))
+            {
+                _pinching = true;
+                _pet.BeginPinch(_downCursor);
+            }
+            else
+            {
+                _dragging = true;
+                _pet.BeginDrag(_downCursor);
+            }
         }
+        if (_pinching) _pet.PinchTo(c);
         if (_dragging) _pet.DragTo(c);
     }
 
@@ -152,10 +162,11 @@ public sealed class PetWindow : Window
         base.OnMouseLeftButtonUp(e);
         if (!_mouseDown) return;
         _mouseDown = false;
-        bool wasDragging = _dragging;   // ReleaseMouseCapture runs OnLostMouseCapture, which resets _dragging
-        _dragging = false;
+        bool wasDragging = _dragging, wasPinching = _pinching;   // ReleaseMouseCapture runs OnLostMouseCapture, which resets them
+        _dragging = _pinching = false;
         ReleaseMouseCapture();
-        if (wasDragging) _pet.EndDrag();
+        if (wasPinching) _pet.EndPinch();
+        else if (wasDragging) _pet.EndDrag();
         else _pet.RaiseClicked();
         e.Handled = true;
     }
@@ -164,6 +175,7 @@ public sealed class PetWindow : Window
     {
         base.OnLostMouseCapture(e);
         if (_dragging) _pet.EndDrag();
-        _mouseDown = _dragging = false;
+        if (_pinching) _pet.EndPinch();
+        _mouseDown = _dragging = _pinching = false;
     }
 }

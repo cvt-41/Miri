@@ -232,6 +232,26 @@
         220,
         260
       ]
+    },
+    {
+      "Name": "Pinch",
+      "Row": 22,
+      "Frames": 2,
+      "Fps": 4.17,
+      "DurationsMs": [
+        240,
+        240
+      ]
+    },
+    {
+      "Name": "Sulk",
+      "Row": 23,
+      "Frames": 2,
+      "Fps": 0.95,
+      "DurationsMs": [
+        1400,
+        700
+      ]
     }
   ]
 }

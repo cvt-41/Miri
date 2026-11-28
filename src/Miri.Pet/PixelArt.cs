@@ -416,6 +416,38 @@ internal static class PixelArt
     private static readonly string[] SeekDot = { ".ooo.", "orrro", "orhro", "orrro", ".ooo." };   // a progress-bar dot (the toy), shiny
     private static readonly string[] Swish = { "o.", ".o", "o." };                                  // little motion marks
 
+    // ------------------------------------------------------- after a tease: cheek pinch / sulk
+
+    private static readonly string[] EyesAngry = // heavy lids slanting down to the middle: grumpy
+    {
+        "ooww____wwoo",
+        "wooo____ooow",
+        "wgpg____gpgw",
+        "wggw____wggw",
+    };
+    // her right cheek pulled out sideways (x=21, y=12); f=1 stretches further
+    private static readonly string[][] CheekStretch =
+    {
+        new[] { "wwso..", "wnwwso", "wwwso.", "wwso.." },
+        new[] { "wwwwso", "wnnwwwso", "wwwwwso", "wwwso.." },
+    };
+    private static readonly string[] EyesHaughty = // eyes shut, nose in the air
+    {
+        "wwww____wwww",
+        "oooo____oooo",
+        "wwww____wwww",
+        "wwww____wwww",
+    };
+    private static readonly string[] EyesPeek = // half-shut, peeking sideways: "are you coming?"
+    {
+        "wwww____wwww",
+        "oooo____oooo",
+        "wgpp____wgpp",
+        "wwww____wwww",
+    };
+    private static readonly string[] MouthPout = { "wwwoowwww", "wwwwwwwww" }; // x=10, y=14: little pursed mouth
+    private static readonly string[] AngerMark = { ".r.r.", "rr.rr", ".....", "rr.rr", ".r.r." };
+
     private static string[] Shade(string[] rows) => rows.Select(r => r.Replace('w', 's')).ToArray();
     private static string[] FlipV(string[] rows) => rows.Reverse().ToArray();
 
@@ -491,6 +523,8 @@ internal static class PixelArt
                 ClimbFrame(25).Pixels(), ClimbFrame(19).Pixels(), ClimbFrame(12).Pixels(), ClimbFrame(5).Pixels(), ClimbFrame(0).Pixels(),
             }),
             new("PullDot", new[] { 220, 220 }, new() { TugFrame(0, SeekDot).Pixels(), TugFrame(1, SeekDot).Pixels() }),
+            new("Pinch", new[] { 240, 240 }, new() { PinchFrame(0).Pixels(), PinchFrame(1).Pixels() }),
+            new("Sulk", new[] { 1400, 700 }, new() { SulkFrame(0).Pixels(), SulkFrame(1).Pixels() }),
         };
         return list;
     }
@@ -793,6 +827,27 @@ internal static class PixelArt
         }
         return c;
     }
+
+    // Cheek pinched and pulled to the right (mirrored for left): grumpy brows, squished frown, cheek stretching out.
+    private static Canvas PinchFrame(int f) => SitFrame(c =>
+    {
+        c.Stamp(EyesAngry, 8, 9);
+        c.Stamp(MouthFrown, 11, 14);
+        c.Stamp(Blush, 8, 13);
+        c.Stamp(CheekStretch[f], 21, 12);
+        c.Stamp(Swish, 6, 9 + f);   // a little wobble on the other side
+    });
+
+    // Sulking: nose up, eyes shut, pursed pout, puffed blush, anger mark; frame 1 peeks to see if you'll pat her.
+    private static Canvas SulkFrame(int f) => SitFrame(c =>
+    {
+        c.Stamp(EarsFlat, 3, 3);
+        c.Stamp(f == 0 ? EyesHaughty : EyesPeek, 8, 9);
+        c.Stamp(MouthPout, 10, 14);
+        c.Stamp(Blush, 8, 13); c.Stamp(Blush, 19, 13);
+        c.Stamp(AngerMark, 24, 1 + f);
+        if (f == 1) c.Stamp(TailFlick, 24, 20);   // tail flicks while she peeks
+    });
 
     private static Canvas SmugFrame(int f) => SitFrame(c =>
     {

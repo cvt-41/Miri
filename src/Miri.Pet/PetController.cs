@@ -125,7 +125,16 @@ public sealed class PetController
         _b.ReachFor(screenDip, _floors.WorkArea == default ? ScreenMetrics.WorkAreaDip() : _floors.WorkArea);
 
     /// <summary>Stroked by the mouse: purr for a few seconds.</summary>
-    public void Pet() => _b.Pet();
+    public void Pet()
+    {
+        if (_pinching) return;
+        if (_sulking)
+        {
+            _sulking = false;
+            Says?.Invoke("Fine... you're forgiven, meow.", false);
+        }
+        _b.Pet();
+    }
 
     /// <summary>Jump onto a target's top edge just left of its center (DIPs), e.g. a progress-bar dot.</summary>
     public void JumpLeftOf(Rect screenDip) =>
@@ -213,6 +222,51 @@ public sealed class PetController
         return false;
     }
 
+    // ------------------------------------------------------------------ after a tease: cheek pinch, sulk, headpat
+
+    private double _cheeksUntil, _sulkUntil;
+    private const double SulkMaxSeconds = 150;   // ignored that long, she gets over it (teasing, wandering, sleep resume)
+    private bool _pinching, _pinchLeft, _sulking;
+    private Point _pinchFrom;
+
+    /// <summary>A short line from Miri for the chat bubble (UI thread); true = clear the bubble's log first.</summary>
+    public event Action<string, bool>? Says;
+
+    public bool Sulking => _sulking;
+    public bool Pinching => _pinching;
+
+    /// <summary>Right after a tease: for a few seconds her cheeks can be pinched.</summary>
+    public void OfferCheeks(double seconds = 8) => _cheeksUntil = _sw.Elapsed.TotalSeconds + seconds;
+
+    /// <summary>Pressed on her face while she can be caught?</summary>
+    public bool CanPinch(Point cursorDip) =>
+        _sw.Elapsed.TotalSeconds < _cheeksUntil && !Playing && State is PetState.Sitting or PetState.Walking &&
+        Bounds.Contains(cursorDip) && cursorDip.Y < Bounds.Top + Size * 0.55;   // head, not body
+
+    public void BeginPinch(Point from)
+    {
+        _pinching = true;
+        _pinchFrom = from;
+        _cheeksUntil = 0;
+        _sulking = false;
+    }
+
+    /// <summary>The cheek stretches towards the side it's pulled to.</summary>
+    public void PinchTo(Point cursorDip)
+    {
+        if (Math.Abs(cursorDip.X - _pinchFrom.X) > 2) _pinchLeft = cursorDip.X < _pinchFrom.X;
+    }
+
+    /// <summary>Let go: she sulks until she gets a headpat.</summary>
+    public void EndPinch()
+    {
+        if (!_pinching) return;
+        _pinching = false;
+        _sulking = true;
+        _sulkUntil = _sw.Elapsed.TotalSeconds + SulkMaxSeconds;
+        Says?.Invoke("Hmph! That's my cheek, meow... I'm not talking to you until I get a headpat.", true);
+    }
+
     // ------------------------------------------------------------------ play (cursor as a toy)
 
     private double _playUntil, _stillFor, _nextChase, _rideUntil, _nextSad;
@@ -224,7 +278,7 @@ public sealed class PetController
     public bool Riding => _b.Riding;
 
     /// <summary>She chases the cursor, pounces and tugs it; hold the cursor still just above her head and she hops on for a ride.</summary>
-    public void StartPlay(double seconds = 90) { _playUntil = _sw.Elapsed.TotalSeconds + seconds; _b.SetMood(PetMood.Happy); }
+    public void StartPlay(double seconds = 90) { _sulking = false; _playUntil = _sw.Elapsed.TotalSeconds + seconds; _b.SetMood(PetMood.Happy); }
 
     public void StopPlay()
     {
@@ -401,6 +455,10 @@ public sealed class PetController
         uint idle = NativeMethods.IdleMilliseconds();
         var cursor = ScreenMetrics.CursorDip();
         if (Playing) PlayStep(dt, now, cursor, idle);
+        // held in the pinch / sulking pose (re-armed each tick); a brain mood (talking, thinking...) still shows over the sulk
+        if (_sulking && now >= _sulkUntil) _sulking = false;
+        if (_pinching) _b.Play(PetAnimation.Pinch, 0.3);
+        else if (_sulking && _b.Mood == PetMood.Idle && !IsDragging) _b.Play(PetAnimation.Sulk, 0.3);
         var (anim, mirrored) = _b.Tick(dt, _floors.Floors, _floors.WorkArea == default ? ScreenMetrics.WorkAreaDip() : _floors.WorkArea, idle, cursor);
         if (Playing && !_b.Riding && anim is not (PetAnimation.Walk or PetAnimation.Jump or PetAnimation.Fall or PetAnimation.Crouch))
         {
@@ -409,6 +467,7 @@ public sealed class PetController
             if (Math.Abs(dx) > Size * HugReach) _faceLeft = dx < 0;
             mirrored = _faceLeft;
         }
+        if (anim == PetAnimation.Pinch) mirrored = _pinchLeft;   // frames stretch her right cheek; mirrored when pulled left
 
         Animate(anim, mirrored, dt);
         PublishPosition();

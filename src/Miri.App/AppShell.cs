@@ -40,6 +40,11 @@ internal sealed class AppShell : IMiriEvents, IApprovalGate
         _bubble.BubbleVisibilityChanged += visible => _pet.HoldStill = visible;
         _pet.PositionChanged += () => _bubble.Reposition(_pet.Bounds);
         _pet.Clicked += ToggleChat;
+        _pet.Says += (text, fresh) =>
+        {
+            if (fresh && !_busy) _bubble.ClearReply();   // never wipe a running exchange   // each pinch starts a clean bubble, so the lines don't pile up
+            ShowNote(text);
+        };
 
         _idleMoodTimer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(3) };
         _idleMoodTimer.Tick += (_, _) =>
